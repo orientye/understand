@@ -1,13 +1,21 @@
 # 规范
 - https://google.github.io/styleguide/cppguide.html
-- https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
+- 中文版: https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
 
-# 补充与说明
-## More Effective C++
-Item M3: 不要对数组使用多态
-Item M4: 避免无用的缺省构造函数
-Item M5: 谨慎定义类型转换函数
-Item M6: 尽量使用前缀自增自减
+# Effective C++ 3rd
+- Item 53: 重视编译器警告
+
+# More Effective C++
+- Item M3: 不要对数组使用多态  
+- Item M4: 避免无用的缺省构造函数
+- Item M5: 谨慎定义类型转换函数
+- Item M6: 尽量使用前缀自增自减
+
+# Effective STL
+
+# Effective Modern C++
+
+# 补充
 
 # 工具
 - cpplint
@@ -19,3 +27,10 @@ Item M6: 尽量使用前缀自增自减
     - [建议] 使用unity build: 如set(CMAKE_UNITY_BUILD ON)加速编译
     - 加速技术 https://onqtam.comf/programming/2019-12-20-pch-unity-cmake-3-16/
     - https://github.com/onqtam/awesome-cmake
+
+# 参考
+- 《Effective C++ 3rd》
+- 《More Effective C++》
+- 《Effective STL》
+- 《Effective Modern C++》
+-  https://github.com/kelthuzadx/EffectiveModernCppChinese
