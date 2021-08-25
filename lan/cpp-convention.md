@@ -12,6 +12,8 @@
 - Item M6: 尽量使用前缀自增自减
 
 # Effective STL
+- 条款4：用empty来代替检查size()是否为0
+- 条款5: 区间成员函数优先于与之对应的单元素成员函数
 
 # Effective Modern C++
 
