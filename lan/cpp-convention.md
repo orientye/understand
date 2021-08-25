@@ -1,8 +1,13 @@
 # 规范
 - https://google.github.io/styleguide/cppguide.html
-- https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html
+- https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
 
 # 补充与说明
+## More Effective C++
+Item M3: 不要对数组使用多态
+Item M4: 避免无用的缺省构造函数
+Item M5: 谨慎定义类型转换函数
+Item M6: 尽量使用前缀自增自减
 
 # 工具
 - cpplint
