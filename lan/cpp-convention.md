@@ -3,6 +3,11 @@
 - 中文版: https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
 
 # Effective C++ 3rd
+- Item 04.  确定对象被使用前已被初始化
+- Item 07.  为多态基类声明virtual析构函数
+- Item 09.  绝不在构造函数和析构函数中调用virtual函数
+- Item 11.  operator=处理好自我赋值
+- Item 12.  复制对象时勿忘其每一个成分
 - Item 53.  重视编译器警告
 
 # More Effective C++
@@ -12,9 +17,9 @@
 - Item M6.  尽量使用前缀自增自减
 
 # Effective STL
-- 条款4.   用empty来代替检查size()是否为0
-- 条款5.   区间成员函数优先于与之对应的单元素成员函数
-- 条款9.   慎重选择删除元素的方法
+- 条款04.  用empty来代替检查size()是否为0
+- 条款05.  区间成员函数优先于与之对应的单元素成员函数
+- 条款09.  慎重选择删除元素的方法
 - 条款14.  使用reserve来避免不必要的重新分配
 - 条款22.  切勿直接修改set或multiset中的键
 - 条款32.  如果确实需要删除元素，则需要在remove这一类算法之后调用erase
