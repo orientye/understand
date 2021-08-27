@@ -87,6 +87,8 @@
 ## STL
 - vector: push_back/[]/emplace/emplace_back/at
 - map: find/[]/insert/at/emplace
+## 内存
+- 不要重载全局::operator new()等函数
 
 # 工具
 - cpplint
