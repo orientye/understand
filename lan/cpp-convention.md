@@ -85,8 +85,8 @@
 
 # 补充
 ## 内存
-- [强制]严禁两次及以上的free/delete(同时, 应当优先选择智能指针)  Q: 会出现什么问题?
-- 不要重载全局::operator new()等函数
+- [强制] 严禁两次及以上的free/delete(同时, 应当优先选择智能指针)  Q: 会出现什么问题?
+- [建议] 不要重载全局::operator new()等函数
 
 ## STL
 - vector: push_back/[]/emplace/emplace_back/at
