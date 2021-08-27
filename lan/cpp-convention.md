@@ -12,6 +12,7 @@
 - Item 21.  绝不返回局部变量(local stack)的指针或引用
 - Item 26.  尽可能延后变量定义的出现时间
 - Item 28.  避免返回handles(包括引用指针迭代器)指向对象内部
+- Item 35.  考虑virtual以外的其它选择   TIPS: 函数指针; std::bind, std::function; CRTP等
 - Item 53.  重视编译器警告
 
 # More Effective C++
@@ -26,7 +27,7 @@
 - 条款09.  慎重选择删除元素的方法
 - 条款14.  使用reserve来避免不必要的重新分配
 - 条款22.  切勿直接修改set或multiset中的键
-- 条款32.  如果确实需要删除元素，则需要在remove这一类算法之后调用erase
+- 条款32.  如果确实需要删除元素, 则需要在remove这一类算法之后调用erase
 - 条款33.  对包含指针的容器使用remove这一类算法时要特别小心
 - 条款44.  容器的成员函数优先于同名的算法
 
@@ -83,6 +84,9 @@
 	2. [Item 42:考虑就地创建而非插入](https://github.com/kelthuzadx/EffectiveModernCppChinese/blob/master/8.Tweaks/item42.md) 由 @wendajiang贡献
 
 # 补充
+## STL
+- vector: push_back/[]/emplace/emplace_back/at
+- map: find/[]/insert/at/emplace
 
 # 工具
 - cpplint
