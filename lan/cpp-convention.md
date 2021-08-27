@@ -12,7 +12,7 @@
 - Item 21.  绝不返回局部变量(local stack)的指针或引用
 - Item 26.  尽可能延后变量定义的出现时间
 - Item 28.  避免返回handles(包括引用指针迭代器)指向对象内部
-- Item 35.  考虑virtual以外的其它选择   TIPS: 函数指针; std::bind, std::function; CRTP等
+- Item 35.  考虑virtual以外的其它选择  TIPS: 函数指针; std::bind, std::function; CRTP等
 - Item 53.  重视编译器警告
 
 # More Effective C++
