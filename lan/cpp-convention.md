@@ -84,11 +84,13 @@
 	2. [Item 42:考虑就地创建而非插入](https://github.com/kelthuzadx/EffectiveModernCppChinese/blob/master/8.Tweaks/item42.md) 由 @wendajiang贡献
 
 # 补充
+## 内存
+- [强制]严禁两次及以上的free/delete(同时, 应当优先选择智能指针)  Q: 会出现什么问题?
+- 不要重载全局::operator new()等函数
+
 ## STL
 - vector: push_back/[]/emplace/emplace_back/at
 - map: find/[]/insert/at/emplace
-## 内存
-- 不要重载全局::operator new()等函数
 
 # 工具
 - cpplint
