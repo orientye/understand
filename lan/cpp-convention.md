@@ -20,6 +20,7 @@
 - Item M4.  避免无用的缺省构造函数
 - Item M5.  谨慎定义类型转换函数
 - Item M6.  尽量使用前缀自增自减
+- Item M24. 理解虚拟函数、多继承、虚基类和RTTI所需的代价
 
 # Effective STL
 - 条款04.  用empty来代替检查size()是否为0
