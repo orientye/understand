@@ -1,4 +1,4 @@
-# 规范
+# Google代码规范
 - https://google.github.io/styleguide/cppguide.html
 - 中文版: https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
 
@@ -85,6 +85,18 @@
 	1. [Item 41:对于那些可移动总是被拷贝的形参使用传值方式](https://github.com/kelthuzadx/EffectiveModernCppChinese/blob/master/8.Tweaks/item41.md) 由 @wendajiang贡献
 	2. [Item 42:考虑就地创建而非插入](https://github.com/kelthuzadx/EffectiveModernCppChinese/blob/master/8.Tweaks/item42.md) 由 @wendajiang贡献
 
+# C++ Coding Standards
+- Item004. 在代码审查上投入
+- Item039. 考虑将虚拟函数声明为非公用的, 将公用函数声明为非虚拟的(TIPS: 基类析构函数除外)
+- Item054. 避免切片
+- Item054. 使用赋值的标准形式
+- Item060. 要避免在不同的模块中分配和释放内存
+- Item061. 不要在头文件中定义具有链接的实体
+- Item062. 不要允许异常跨越边界传播
+- Item063. 在模块的接口中使用具有良好的可移植性的类型
+- Item090. 避免使用类型分支, 多使用多态
+- Item096. 不要对非POD进行memcpy/memcmp
+
 # 补充
 ## 内存
 - [强制] 严禁两次及以上的free/delete(同时, 应当优先选择智能指针)  Q: 会出现什么问题?
@@ -93,6 +105,9 @@
 ## STL
 - vector: push_back/[]/emplace/emplace_back/at
 - map: find/[]/insert/at/emplace
+
+## 并发
+TODO
 
 # 工具
 - cpplint
@@ -110,4 +125,5 @@
 - 《More Effective C++》
 - 《Effective STL》
 - 《Effective Modern C++》
+- 《C++ Coding Standards》
 -  https://github.com/kelthuzadx/EffectiveModernCppChinese
