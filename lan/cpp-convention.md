@@ -1,3 +1,7 @@
+# 说明
+- 规范与建议以Google代码规范为基础, 以Effective系列等作为补充(去掉了重合的, 过时的, 基本可以省略的内容)
+- Google代码规范的注释及格式等部分考虑使用cpplint工具来完成
+
 # Google代码规范
 - https://google.github.io/styleguide/cppguide.html
 - 中文版: https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
@@ -97,16 +101,15 @@
 - Item090. 避免使用类型分支, 多使用多态
 - Item096. 不要对非POD进行memcpy/memcmp
 
-# 补充
-## 内存
+# 内存
 - [强制] 严禁两次及以上的free/delete(同时, 应当优先选择智能指针)  Q: 会出现什么问题?
 - [建议] 不要重载全局::operator new()等函数
 
-## STL
+# STL
 - vector: push_back/[]/emplace/emplace_back/at
 - map: find/[]/insert/at/emplace
 
-## 并发
+# 并发
 TODO
 
 # 工具
