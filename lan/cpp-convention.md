@@ -123,6 +123,7 @@
 - [建议] signal要考虑异步信号安全, 可以考虑libuv的处理方式
 - linux async-signal-safe系统函数 http://man7.org/linux/man-pages/man7/signal-safety.7.html
 - linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
+- [建议] 借助工具/库来检测锁缺失, 死锁等并发问题
 
 # 工具
 - cpplint
