@@ -110,7 +110,19 @@
 - map: find/[]/insert/at/emplace
 
 # 并发
-TODO
+- [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存, 而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
+- [建议] 优先使用Socket(TCP)
+- [建议] 如果必须共享状态, 尽量使用消息队列/任务队列等公用组件
+- [建议] 互斥尽量使用Mutex, 并尽量使用非递归锁
+- [建议] 深入理解condition-variable
+- [建议] 深入理解rwlock
+- [建议] 深入理解spinlock, 一般情况下不应使用spinlock
+- [建议] 深入理解volatile, 一般情况下不应使用volatile
+- [建议] 一般只有基础库可以使用atomic与memmory-order
+- [建议] 一般只有基础库可以使用lock-free, lock free的正确性应当得到充分验证
+- [建议] signal要考虑异步信号安全, 可以考虑libuv的处理方式
+- linux async-signal-safe系统函数 http://man7.org/linux/man-pages/man7/signal-safety.7.html
+- linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
 
 # 工具
 - cpplint
