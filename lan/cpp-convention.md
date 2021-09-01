@@ -108,10 +108,6 @@
 - [强制] 防止缓冲区溢出(例如数组越界)
 - [建议] 不要重载全局::operator new()等函数
 
-# STL
-- vector: push_back/[]/emplace/emplace_back/at
-- map: find/[]/insert/at/emplace
-
 # 并发
 - [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存, 而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
 - [建议] 优先使用Socket(TCP)
@@ -127,6 +123,10 @@
 - linux async-signal-safe系统函数 http://man7.org/linux/man-pages/man7/signal-safety.7.html
 - linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
 - [建议] 借助工具/库来检测锁缺失, 死锁等并发问题
+
+# STL
+- vector: push_back/[]/emplace/emplace_back/at
+- map: find/[]/insert/at/emplace
 
 # 工具
 - cpplint
