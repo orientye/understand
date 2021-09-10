@@ -3,10 +3,6 @@
 - Google代码规范的注释及格式等部分考虑使用cpplint工具来完成
 - 版本: 1.0.1
 - 最后更新: 2021-09-08 14:00
-- 作者: orient
-  - 主页: http://orientye.com
-  - github: https://github.com/orientye
-  - 微信公众号: 深入理解计算机系统
 
 # Google代码规范
 - https://google.github.io/styleguide/cppguide.html
