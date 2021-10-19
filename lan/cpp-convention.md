@@ -125,6 +125,9 @@
 - linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
 - [建议] 借助工具/库来检测锁缺失, 死锁等并发问题
 
+# 补充
+- [建议] 优先使用enum class而不是enum: https://github.com/google/styleguide/issues/143
+
 # 工具
 - cpplint
     - [建议] cpplint标准比较严格, 可以保持代码风格的一致性
