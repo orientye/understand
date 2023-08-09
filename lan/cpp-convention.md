@@ -108,7 +108,7 @@
 - [强制] 严禁两次及以上的free/delete(同时, 应当优先选择智能指针)
 - [强制] 防止缓冲区溢出(例如数组越界)
 - [建议] 不要重载全局::operator new()等函数
-- [建议] 考虑使用memmove代替memcpy: https://stackoverflow.com/questions/4415910/memcpy-vs-memmove
+- [强制] 在有重叠的场景，使用memmove而不是memcpy: https://stackoverflow.com/questions/4415910/memcpy-vs-memmove
 
 # 并发
 - [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存, 而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
