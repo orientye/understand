@@ -1,8 +1,8 @@
 # 说明
 - 规范与建议以Google代码规范为基础, 以Effective系列等作为补充(去掉了重合的, 过时的, 基本可以省略的内容)
 - Google代码规范的注释及格式等部分考虑使用cpplint工具来完成
-- 版本: 1.0.1
-- 最后更新: 2021-09-08 14:00
+- 版本: 1.0.2
+- 最后更新: 2024-01-07 18:32
 
 # Google代码规范
 - https://google.github.io/styleguide/cppguide.html
@@ -109,6 +109,10 @@
 - [强制] 防止缓冲区溢出(例如数组越界)
 - [建议] 不要重载全局::operator new()等函数
 - [强制] 在有重叠的场景，使用memmove而不是memcpy: https://stackoverflow.com/questions/4415910/memcpy-vs-memmove
+
+# STL
+- [强制] 不要在空容器上进行获取，弹出等操作
+- [强制] 注意迭代器失效问题
 
 # 并发
 - [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存, 而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
