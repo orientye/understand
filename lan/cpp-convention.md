@@ -154,3 +154,4 @@
 - 《C++ Coding Standards》
 -  https://github.com/kelthuzadx/EffectiveModernCppChinese
 -  https://abseil.io/tips/
+-  https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines
