@@ -6,7 +6,7 @@
 
 # Google代码规范
 - https://google.github.io/styleguide/cppguide.html
-- 中文版: https://google-styleguide.readthedocs.io/zh_CN/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
+- 中文版: https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/contents.html (注意:有些并不准确)
 
 # Effective C++ 3rd
 - Item 04.  确定对象被使用前已被初始化
