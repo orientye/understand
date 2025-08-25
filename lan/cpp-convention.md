@@ -119,7 +119,7 @@
 - [建议] 优先使用socket(TCP)
 - [建议] 如果必须共享状态, 尽量使用消息队列/任务队列等公用组件
 - [建议] 互斥尽量使用mutex, 并尽量使用非递归锁
-- [建议] 深入理解condition-variable
+- [建议] 深入理解condition-variable, 使用while循环防止虚假唤醒等问题
 - [建议] 深入理解rwlock
 - [建议] 深入理解spinlock
 - [建议] 深入理解volatile, 一般情况下不应使用volatile
