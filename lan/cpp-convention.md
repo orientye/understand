@@ -109,7 +109,7 @@
 - [强制] 防止缓冲区溢出(例如数组越界)
 - [建议] 不要重载全局::operator new()等函数
 - [强制] 在有重叠的场景，使用memmove而不是memcpy: https://stackoverflow.com/questions/4415910/memcpy-vs-memmove
-- [强制] 不要使用strncpy等进行拷贝(不能保证null终止)，使用string/std::format(c++20)/snprinf
+- [强制] 不要使用strncpy等进行字符串拷贝(不能保证null终止)，使用string/std::format(c++20)/snprinf
 
 # STL
 - [强制] 不要在空容器上进行获取，弹出等操作
