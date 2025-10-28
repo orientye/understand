@@ -1,5 +1,5 @@
 # 说明
-- 规范与建议以Google代码规范为基础, 以Effective系列等作为补充(去掉了重合的, 过时的, 基本可以省略的内容)
+- 规范与建议以Google代码规范为基础，以Effective系列等作为补充(去掉了重合的，过时的，基本可以省略的内容)
 - Google代码规范的注释及格式等部分考虑使用cpplint工具来完成
 - 版本: 1.0.2
 - 最后更新: 2024-01-07 18:32
@@ -18,7 +18,7 @@
 - Item 21.  绝不返回局部变量(local stack)的指针或引用
 - Item 26.  尽可能延后变量定义的出现时间
 - Item 28.  避免返回handles(包括引用指针迭代器)指向对象内部
-- Item 35.  考虑virtual以外的其它选择  TIPS: 函数指针; std::bind, std::function; CRTP; MFC消息映射表等
+- Item 35.  考虑virtual以外的其它选择  TIPS: 函数指针; std::bind，std::function; CRTP; MFC消息映射表等
 - Item 53.  重视编译器警告
 
 # More Effective C++
@@ -35,7 +35,7 @@
 - 条款09.  慎重选择删除元素的方法
 - 条款14.  使用reserve来避免不必要的重新分配
 - 条款22.  切勿直接修改set或multiset中的键
-- 条款32.  如果确实需要删除元素, 则需要在remove这一类算法之后调用erase
+- 条款32.  如果确实需要删除元素，则需要在remove这一类算法之后调用erase
 - 条款33.  对包含指针的容器使用remove这一类算法时要特别小心
 - 条款44.  容器的成员函数优先于同名的算法
 
@@ -93,50 +93,51 @@
 
 # C++ Coding Standards
 - Item004. 在代码审查上投入
-- Item039. 考虑将虚拟函数声明为非公用的, 将公用函数声明为非虚拟的(TIPS: 基类析构函数除外)
+- Item039. 考虑将虚拟函数声明为非公用的，将公用函数声明为非虚拟的(TIPS: 基类析构函数除外)
 - Item054. 避免切片
 - Item054. 使用赋值的标准形式
 - Item060. 要避免在不同的模块中分配和释放内存
 - Item061. 不要在头文件中定义具有链接的实体
 - Item062. 不要允许异常跨越边界传播
 - Item063. 在模块的接口中使用具有良好的可移植性的类型
-- Item090. 避免使用类型分支, 多使用多态
+- Item090. 避免使用类型分支，多使用多态
 - Item096. 不要对非POD进行memcpy/memcmp
 
 # 内存
-- [强制] 禁止使用空指针和悬挂指针(野指针), 悬挂引用
-- [强制] 严禁两次及以上的free/delete(同时, 应当优先选择智能指针)
+- [强制] 禁止使用空指针和悬挂指针(野指针)，悬挂引用
+- [强制] 严禁两次及以上的free/delete(同时，应当优先选择智能指针)
 - [强制] 防止缓冲区溢出(例如数组越界)
 - [建议] 不要重载全局::operator new()等函数
 - [强制] 在有重叠的场景，使用memmove而不是memcpy: https://stackoverflow.com/questions/4415910/memcpy-vs-memmove
+- [强制] 不要使用strncpy等进行拷贝(不能保证null终止)，使用string/std::format(c++20)/snprinf
 
 # STL
 - [强制] 不要在空容器上进行获取，弹出等操作
 - [强制] 注意迭代器失效问题
 
 # 并发
-- [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存, 而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
+- [建议] 优先使用消息传递而不是共享内存(使用通信来共享内存，而不是通过共享内存来通信)/尽量无状态/尽量不可变(immutable)状态
 - [建议] 优先使用socket(TCP)
-- [建议] 如果必须共享状态, 尽量使用消息队列/任务队列等公用组件
-- [建议] 互斥尽量使用mutex, 并尽量使用非递归锁
-- [建议] 深入理解condition-variable, 使用while循环防止虚假唤醒等问题
+- [建议] 如果必须共享状态，尽量使用消息队列/任务队列等公用组件
+- [建议] 互斥尽量使用mutex，并尽量使用非递归锁
+- [建议] 深入理解condition-variable，使用while循环防止虚假唤醒等问题
 - [建议] 深入理解rwlock
 - [建议] 深入理解spinlock
-- [建议] 深入理解volatile, 一般情况下不应使用volatile
+- [建议] 深入理解volatile，一般情况下不应使用volatile
 - [建议] 一般只有基础库才需要使用atomic与memory-order
-- [建议] 一般只有基础库才需要使用lock-free, lock-free的正确性应当得到充分验证
-- [建议] signal要考虑异步信号安全, 可以考虑libuv的处理方式
+- [建议] 一般只有基础库才需要使用lock-free，lock-free的正确性应当得到充分验证
+- [建议] signal要考虑异步信号安全，可以考虑libuv的处理方式
 - linux async-signal-safe系统函数 http://man7.org/linux/man-pages/man7/signal-safety.7.html
 - linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
-- [建议] 借助工具/库来检测锁缺失, 死锁等并发问题
+- [建议] 借助工具/库来检测锁缺失，死锁等并发问题
 
 # 补充
 - [建议] 优先使用enum class而不是enum: https://github.com/google/styleguide/issues/143
 
 # 工具
 - cpplint
-    - [建议] cpplint标准比较严格, 可以保持代码风格的一致性
-    - [建议] 可以添加少量的filter, 让所有检查通过
+    - [建议] cpplint标准比较严格，可以保持代码风格的一致性
+    - [建议] 可以添加少量的filter，让所有检查通过
 - Sanitizer
 	- https://github.com/google/sanitizers
 	- https://clang.llvm.org/docs/
