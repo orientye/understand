@@ -120,16 +120,16 @@
 - [建议] 优先使用socket(TCP)
 - [建议] 如果必须共享状态，尽量使用消息队列/任务队列等公用组件
 - [建议] 互斥尽量使用mutex，并尽量使用非递归锁
-- [建议] 深入理解condition-variable，使用while循环防止虚假唤醒等问题
+- [建议] 深入理解condition-variable，使用while循环防止虚假唤醒
 - [建议] 深入理解rwlock
 - [建议] 深入理解spinlock
 - [建议] 深入理解volatile，一般情况下不应使用volatile
 - [建议] 一般只有基础库才需要使用atomic与memory-order
 - [建议] 一般只有基础库才需要使用lock-free，lock-free的正确性应当得到充分验证
+- [建议] 借助工具/库来检测锁缺失，死锁等并发问题
 - [建议] signal要考虑异步信号安全，可以考虑libuv的处理方式
 - linux async-signal-safe系统函数 http://man7.org/linux/man-pages/man7/signal-safety.7.html
 - linux 非线程安全函数 https://man7.org/linux/man-pages/man7/pthreads.7.html
-- [建议] 借助工具/库来检测锁缺失，死锁等并发问题
 
 # 补充
 - [建议] 优先使用enum class而不是enum: https://github.com/google/styleguide/issues/143
