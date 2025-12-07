@@ -1,8 +1,8 @@
 # 说明
 - 规范与建议以Google代码规范为基础，以Effective系列等作为补充(去掉了重合的，过时的，基本可以省略的内容)
 - Google代码规范的注释及格式等部分考虑使用cpplint工具来完成
-- 版本: 1.0.2
-- 最后更新: 2024-01-07 18:32
+- 版本: 1.0.3
+- 最后更新: 2025-12-07 17:32
 
 # Google代码规范
 - https://google.github.io/styleguide/cppguide.html
