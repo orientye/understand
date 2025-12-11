@@ -27,6 +27,7 @@
 - Item M5.  谨慎定义类型转换函数
 - Item M6.  尽量使用前缀自增自减
 - Item M13. 通过引用(reference)捕获异常
+- Item M19. 理解临时对象的来源
 - Item M24. 理解虚拟函数、多继承、虚基类和RTTI所需的代价
 
 # Effective STL
