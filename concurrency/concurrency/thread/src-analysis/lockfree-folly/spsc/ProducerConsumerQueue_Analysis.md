@@ -2,7 +2,7 @@
 
 ## 概述
 
-`ProducerConsumerQueue` 是 Facebook Folly 库中最简单的并发队列实现，专门针对**单生产者单消费者（SPSC）**场景优化。
+`ProducerConsumerQueue` 是 Facebook Folly 库中最简单的并发队列实现，专门针对**单生产者单消费者**即**SPSC**场景优化。
 
 ### 核心特性
 
