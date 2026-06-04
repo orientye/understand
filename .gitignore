@@ -9,7 +9,7 @@
 .vscode/
 
 # Claude
-.claude/
+#.claude/
 
 # Codex
 .codex/
