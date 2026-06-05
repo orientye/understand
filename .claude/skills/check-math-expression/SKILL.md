@@ -11,7 +11,7 @@ description: |
 ## What It Does
 
 Runs `tools/check-math-expression.py` on `.asc` files to detect and auto-fix math
-formatting issues. Format rules are defined in [.claude/CLAUDE.md](../CLAUDE.md).
+formatting issues. Format rules are defined in [.claude/CLAUDE.md](.claude/CLAUDE.md).
 
 ## Agent Workflow
 
