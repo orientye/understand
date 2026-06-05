@@ -3,13 +3,11 @@
 check-math-expression.py — Check & fix math expressions in .asc files.
 
 Checks:
-  1. Unicode-first: warn if a formal block could be replaced by Unicode.
-  2. Guard pairing: ifndef::env-github[] / ifdef::env-github[] must be paired and adjacent.
-  3. Guard coverage: paragraphs containing \(...\), \[...\], stem:[...], latexmath:[...],
-     [stem]++++, [latexmath]++++ must be wrapped in guards.
-  4. Format correctness: non-GitHub section uses correct AsciiDoc syntax;
-     GitHub section uses correct Markdown syntax.
-  5. Banned patterns: [source, math] is not allowed.
+  1. Guard pairing: ifndef::env-github[] / ifdef::env-github[] must be paired.
+  2. Guard coverage: math expressions must be wrapped in guards.
+  3. Format correctness: AsciiDoc in ifndef, Markdown in ifdef.
+  4. Banned patterns: [source, math] is not allowed.
+  5. W001: unnecessary guard blocks; W002: simple math that could use Unicode.
 
 Usage:
   python tools/check-math-expression.py <file.asc>              # check only
@@ -23,8 +21,7 @@ import argparse
 import os
 import re
 import sys
-from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 
 
 # ── Issues ──────────────────────────────────────────────────────────────────────
@@ -34,12 +31,31 @@ class Issue(NamedTuple):
     severity: str  # "error" | "warning"
     code: str      # short code like E001
     message: str
-    fix: Optional[str] = None  # suggested replacement, or None if not auto-fixable
+    fix: Optional[str] = None
 
 
 # ── Checks ──────────────────────────────────────────────────────────────────────
 
-CHECKS_RUN = set()  # track which checks actually triggered
+CHECKS_RUN = set()
+
+# Simple inline math that CLAUDE.md says should prefer Unicode (no dual-format guards).
+_UNICODE_CANDIDATE = re.compile(
+    r"^(?:"
+    r"[a-zA-Z](?:\^|_)(?:[0-9n]|T)|"           # x^2, a_n, A^T
+    r"[a-zA-Z]\^\{[0-9nT]\}|"                  # x^{2}, A^{T}
+    r"[a-zA-Z]_\{[0-9n]\}|"                    # x_{1}
+    r"\\sqrt\{[a-zA-Z0-9]+\}|"                # \sqrt{x}
+    r"\\neq|\\leq|\\geq|\\times|\\pm"          # common symbols
+    r")$"
+)
+
+
+def _is_guard_open(line: str) -> bool:
+    return "ifndef::env-github[]" in line or "ifdef::env-github[]" in line
+
+
+def _is_guard_close(line: str) -> bool:
+    return "endif::[]" in line or "endif::env-github[]" in line
 
 
 def check_banned_source_math(lines: List[str], path: str) -> List[Issue]:
@@ -53,15 +69,14 @@ def check_banned_source_math(lines: List[str], path: str) -> List[Issue]:
                 severity="error",
                 code="E005",
                 message="[source, math] is banned. Use [stem]++++ (non-GitHub) and ```math (GitHub) instead.",
-                fix=None,  # context-dependent, flag for manual review
             ))
     return issues
 
 
 def check_guard_pairs(lines: List[str], path: str) -> List[Issue]:
-    """E001: Guard pairing — every ifndef must have matching ifdef adjacent."""
+    """E001: Guard pairing — every opening guard must have a matching endif."""
     issues = []
-    stack = []  # (type: str, line: int)
+    stack = []
 
     for i, line in enumerate(lines, 1):
         stripped = line.rstrip()
@@ -69,25 +84,12 @@ def check_guard_pairs(lines: List[str], path: str) -> List[Issue]:
             stack.append(("ifndef", i))
         elif "ifdef::env-github[]" in stripped:
             stack.append(("ifdef", i))
-        elif "endif::[]" in stripped:
+        elif "endif::[]" in stripped or "endif::env-github[]" in stripped:
             if not stack:
                 CHECKS_RUN.add("E001")
                 issues.append(Issue(
                     line=i, severity="error", code="E001",
-                    message="Stray endif::[] without matching guard.",
-                ))
-                continue
-            opened = stack.pop()
-            # Check that ifndef and ifdef are adjacent (no blank lines / text between endif and next guard)
-            # The adjacency check for ifndef→endif→ifdef pairs is handled separately
-            # We do a full structure check after scanning
-        elif "endif::env-github[]" in stripped:
-            # Variant: some files use endif::env-github[] instead of endif::[]
-            if not stack:
-                CHECKS_RUN.add("E001")
-                issues.append(Issue(
-                    line=i, severity="error", code="E001",
-                    message="Stray endif::env-github[] without matching guard.",
+                    message="Stray endif without matching guard.",
                 ))
                 continue
             stack.pop()
@@ -103,62 +105,69 @@ def check_guard_pairs(lines: List[str], path: str) -> List[Issue]:
     return issues
 
 
-def check_adjacent_guards(lines: List[str], path: str) -> List[Issue]:
-    """E002: Check that ifndef/ifdef guard pairs are structurally sound.
-
-    The AsciiDoc convention allows multiple ifndef blocks followed by
-    multiple ifdef blocks (many-to-many), so strict adjacency is not required.
-    This check is intentionally a no-op — the guard structure is validated
-    by E001 (pairing) and E003 (coverage). We keep the function to reserve
-    the E002 code for future structural checks."""
-    return []
+def _report_e003(issues: List[Issue], line: int, expr: str) -> None:
+    CHECKS_RUN.add("E003")
+    issues.append(Issue(
+        line=line, severity="error", code="E003",
+        message=f"Math expression {expr} found outside guard blocks. "
+                f"Wrap in ifndef::env-github[] / ifdef::env-github[].",
+    ))
 
 
 def check_guard_coverage(lines: List[str], path: str) -> List[Issue]:
     """E003: Math expressions must be wrapped in guards."""
-    math_expr_patterns = [
-        r"\\\([^)]*\\\)",           # \(...\)
-        r"\\\[[^\]]*\\\]",          # \[...\]
-        r"stem:\[.*?\]",            # stem:[...]
-        r"latexmath:\[.*?\]",       # latexmath:[...]
-        r"\[stem\]\+\+\+\+.*?\+\+\+\+",       # [stem]++++...++++  (single line)
-        r"\[latexmath\]\+\+\+\+.*?\+\+\+\+",  # [latexmath]++++...++++
-    ]
-    # We only check inline expressions here — block ones are already guard-wrapped
-    single_line_patterns = [
-        (r"\\\([^)]*\\\)", r"\\\(.*?\\\)"),
-        (r"stem:\[.*?\]", r"stem:\[.*?\]"),
-        (r"latexmath:\[.*?\]", r"latexmath:\[.*?\]"),
-    ]
-
     issues = []
     in_guard = False
-    guard_start = 0
+    in_stem_block = False
+    in_latexmath_block = False
 
     for i, line in enumerate(lines, 1):
-        if "ifndef::env-github[]" in line or "ifdef::env-github[]" in line:
+        if _is_guard_open(line):
             in_guard = True
-            guard_start = i
-        if "endif::[]" in line or "endif::env-github[]" in line:
+        if _is_guard_close(line):
             in_guard = False
-        if in_guard:
-            continue  # inside guard is fine
+            in_stem_block = False
+            in_latexmath_block = False
 
-        # Check for \(...\) and \[...\] outside guards
+        if in_guard:
+            continue
+
+        stripped = line.strip()
+
+        if in_stem_block:
+            if stripped == "++++":
+                in_stem_block = False
+            continue
+
+        if in_latexmath_block:
+            if stripped == "++++":
+                in_latexmath_block = False
+            continue
+
+        if "[stem]++++" in line:
+            in_stem_block = True
+            _report_e003(issues, i, "[stem]++++...++++")
+            continue
+
+        if "[latexmath]++++" in line:
+            in_latexmath_block = True
+            _report_e003(issues, i, "[latexmath]++++...++++")
+            continue
+
         if re.search(r"\\\([^)]*\\\)", line):
-            CHECKS_RUN.add("E003")
-            issues.append(Issue(
-                line=i, severity="error", code="E003",
-                message=f"Math expression \\(...\\) found outside guard blocks. "
-                        f"Wrap in ifndef::env-github[] / ifdef::env-github[].",
-            ))
+            _report_e003(issues, i, "\\(...\\)")
         if re.search(r"\\\[[^\]]*\\\]", line):
-            CHECKS_RUN.add("E003")
-            issues.append(Issue(
-                line=i, severity="error", code="E003",
-                message=f"Math expression \\[...\\] found outside guard blocks. "
-                        f"Wrap in ifndef::env-github[] / ifdef::env-github[].",
-            ))
+            _report_e003(issues, i, "\\[...\\]")
+        if re.search(r"stem:\[[^\]]+\]", line):
+            _report_e003(issues, i, "stem:[...]")
+        if re.search(r"latexmath:\[[^\]]+\]", line):
+            _report_e003(issues, i, "latexmath:[...]")
+        if re.search(r"(?<!\$)\$[^$\n]+\$(?!\$)", line):
+            _report_e003(issues, i, "$...$")
+        if re.search(r"\$\$[^$]+\$\$", line):
+            _report_e003(issues, i, "$$...$$")
+        if "```math" in line:
+            _report_e003(issues, i, "```math")
 
     return issues
 
@@ -176,52 +185,88 @@ def check_format_correctness(lines: List[str], path: str) -> List[Issue]:
         elif "ifdef::env-github[]" in line:
             in_ifdef = True
             in_ifndef = False
-        elif "endif::[]" in line or "endif::env-github[]" in line:
+        elif _is_guard_close(line):
             in_ifndef = False
             in_ifdef = False
             continue
 
         if in_ifndef:
-            # In non-GitHub: $...$ is wrong (use \(...\) or stem:[...])
-            # ```math is wrong (use [stem]++++ or \[...\])
-            if re.search(r'(?<!\$)\$[^$]+\$(?!\s)', line) and "stem:" not in line and "latexmath:" not in line:
-                # Be careful: some lines might legitimately have $ in asciidoc
-                # Only flag if it looks like a math expression
+            if re.search(r'(?<!\$)\$[^$]+\$(?!\$)', line) and "stem:" not in line and "latexmath:" not in line:
                 if re.search(r'\$[a-zA-Z_\\{}]+\$', line):
                     CHECKS_RUN.add("E004")
                     issues.append(Issue(
                         line=i, severity="warning", code="E004",
-                        message=f"Non-GitHub (ifndef) section uses Markdown math $...$. "
-                                f"Use \(...\) or stem:[...] instead.",
+                        message="Non-GitHub (ifndef) section uses Markdown math $...$. "
+                                "Use \\(...\\) or stem:[...] instead.",
                     ))
             if "```math" in line:
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="error", code="E004",
-                    message=f"Non-GitHub (ifndef) section uses ```math. Use [stem]++++ or \\[...\\] instead.",
+                    message="Non-GitHub (ifndef) section uses ```math. Use [stem]++++ or \\[...\\] instead.",
                 ))
 
         if in_ifdef:
-            # In GitHub: \(...\) is wrong (use $...$)
-            # \[...\] is wrong (use $$...$$ or ```math)
             if re.search(r'\\\(', line):
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="error", code="E004",
-                    message=f"GitHub (ifdef) section uses \(...\). Use $...$ instead.",
+                    message="GitHub (ifdef) section uses \\(...\\). Use $...$ instead.",
                 ))
             if re.search(r'\\\[', line):
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="error", code="E004",
-                    message=f"GitHub (ifdef) section uses \\[...\\]. Use $$...$$ or ```math instead.",
+                    message="GitHub (ifdef) section uses \\[...\\]. Use $$...$$ or ```math instead.",
                 ))
             if "stem:[" in line or "latexmath:[" in line:
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="warning", code="E004",
-                    message=f"GitHub (ifdef) section uses AsciiDoc math syntax. Use $$...$$ or $...$ instead.",
+                    message="GitHub (ifdef) section uses AsciiDoc math syntax. Use $$...$$ or $...$ instead.",
                 ))
+
+    return issues
+
+
+def _extract_math_inner(line: str) -> Optional[str]:
+    """Return inner content of a simple inline math expression, or None."""
+    for pattern in (
+        r"stem:\[([^\]]+)\]",
+        r"latexmath:\[([^\]]+)\]",
+        r"\\\(([^)]*)\\\)",
+        r"(?<!\$)\$([^$\n]+)\$(?!\$)",
+    ):
+        m = re.search(pattern, line)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def check_unicode_candidates(lines: List[str], path: str) -> List[Issue]:
+    """W002: Warn when simple math could use Unicode instead of dual-format guards."""
+    issues = []
+    in_guard = False
+    guard_line = 0
+
+    for i, line in enumerate(lines, 1):
+        if _is_guard_open(line):
+            in_guard = True
+            guard_line = i
+        if _is_guard_close(line):
+            in_guard = False
+
+        if not in_guard:
+            continue
+
+        inner = _extract_math_inner(line)
+        if inner and _UNICODE_CANDIDATE.match(inner):
+            CHECKS_RUN.add("W002")
+            issues.append(Issue(
+                line=i, severity="warning", code="W002",
+                message=f"Simple math '{inner}' may be replaceable with Unicode characters "
+                        f"(see .claude/CLAUDE.md). Guard block at line {guard_line} may be unnecessary.",
+            ))
 
     return issues
 
@@ -244,15 +289,14 @@ def check_unused_guards(lines: List[str], path: str) -> List[Issue]:
             depth = 1
             content_lines = []
             while j < len(lines) and depth > 0:
-                if ("ifndef::env-github[]" in lines[j] or "ifdef::env-github[]" in lines[j]):
+                if _is_guard_open(lines[j]):
                     depth += 1
-                elif "endif::[]" in lines[j] or "endif::env-github[]" in lines[j]:
+                elif _is_guard_close(lines[j]):
                     depth -= 1
                 if depth > 0 and j >= start:
                     content_lines.append(lines[j])
                 j += 1
 
-            # Check if content has actual math
             has_math = any(
                 re.search(r'stem:|latexmath:|\\\\\(|\\\\\[|\$|```math|\[stem\]|\[latexmath\]', cl)
                 for cl in content_lines
@@ -270,44 +314,105 @@ def check_unused_guards(lines: List[str], path: str) -> List[Issue]:
     return issues
 
 
+def run_checks(lines: List[str], path: str) -> List[Issue]:
+    issues = []
+    issues.extend(check_banned_source_math(lines, path))
+    issues.extend(check_guard_pairs(lines, path))
+    issues.extend(check_guard_coverage(lines, path))
+    issues.extend(check_format_correctness(lines, path))
+    issues.extend(check_unicode_candidates(lines, path))
+    issues.extend(check_unused_guards(lines, path))
+    return issues
+
+
 # ── Auto-fix helpers ────────────────────────────────────────────────────────────
 
 def fix_banned_source_math(content: str) -> str:
-    """Replace [source, math] with ```math (when inside ifdef::env-github[])."""
-    # Replace [source, math] blocks with ```math blocks
-    # [source, math]\n----\n...\n---- → ```math\n...\n```
-    content = re.sub(
-        r'\[source,\s*math\]\s*\n-{3,}\s*\n(.*?)\n-{3,}',
-        r'```math\n\g<1>\n```',
-        content,
-        flags=re.DOTALL,
-    )
-    return content
+    """Replace [source, math] with ```math only inside ifdef::env-github[] blocks."""
+    lines = content.splitlines(keepends=True)
+    result: List[str] = []
+    in_ifdef = False
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+        if "ifdef::env-github[]" in line:
+            in_ifdef = True
+            result.append(line)
+            i += 1
+            continue
+        if "ifndef::env-github[]" in line:
+            in_ifdef = False
+            result.append(line)
+            i += 1
+            continue
+        if _is_guard_close(line):
+            in_ifdef = False
+            result.append(line)
+            i += 1
+            continue
+
+        if in_ifdef and "[source, math]" in line:
+            block_lines = [line]
+            j = i + 1
+            replaced = False
+            if j < len(lines) and re.match(r"-{3,}\s*$", lines[j].strip()):
+                block_lines.append(lines[j])
+                j += 1
+                body = []
+                while j < len(lines) and not re.match(r"-{3,}\s*$", lines[j].strip()):
+                    body.append(lines[j])
+                    j += 1
+                if j < len(lines):
+                    block_lines.append(lines[j])
+                    result.append("```math\n")
+                    result.extend(body)
+                    result.append("```\n")
+                    i = j + 1
+                    replaced = True
+            if not replaced:
+                result.append(line)
+                i += 1
+            continue
+
+        result.append(line)
+        i += 1
+
+    return "".join(result)
 
 
 def fix_latexmath_in_guard(content: str) -> str:
-    """Standardize latexmath:[] → stem:[] in ifndef sections (preferred form)."""
-    # inline latexmath:[...] → stem:[...] — only inside ifndef blocks to be safe
-    content = re.sub(
-        r'(ifndef::env-github\[\].*?)latexmath:\[(.*?)\]',
-        r'\g<1>stem:[\g<2>]',
-        content,
-        flags=re.DOTALL,
-    )
-    # block-level: standalone latexmath:[...] lines in ifndef → stem:[...]
-    content = re.sub(
-        r'^latexmath:\[(.+?)\]$',
-        r'stem:[\g<1>]',
-        content,
-        flags=re.MULTILINE,
-    )
-    # [latexmath]++++ → [stem]++++
-    content = re.sub(
-        r'\[latexmath\]\+\+\+\+',
-        r'[stem]++++',
-        content,
-    )
-    return content
+    """Standardize latexmath → stem in ifndef sections (preferred form)."""
+    parts = re.split(r"(ifndef::env-github\[\])", content)
+    if len(parts) == 1:
+        content = re.sub(r"\[latexmath\]\+\+\+\+", "[stem]++++", content)
+        return content
+
+    rebuilt = [parts[0]]
+    idx = 1
+    while idx < len(parts):
+        rebuilt.append(parts[idx])
+        idx += 1
+        if idx >= len(parts):
+            break
+        section = parts[idx]
+        idx += 1
+        end = section.find("endif::")
+        if end == -1:
+            block, rest = section, ""
+        else:
+            block, rest = section[:end], section[end:]
+        block = re.sub(r"latexmath:\[([^\]]*)\]", r"stem:[\1]", block)
+        block = re.sub(r"\[latexmath\]\+\+\+\+", "[stem]++++", block)
+        rebuilt.append(block + rest)
+
+    return "".join(rebuilt)
+
+
+def apply_auto_fixes(content: str) -> Tuple[str, bool]:
+    new_content = fix_latexmath_in_guard(content)
+    new_content = fix_banned_source_math(new_content)
+    return new_content, new_content != content
 
 
 # ── Runner ──────────────────────────────────────────────────────────────────────
@@ -315,28 +420,12 @@ def fix_latexmath_in_guard(content: str) -> str:
 def check_file(path: str, fix: bool = False, dry_run: bool = False) -> List[Issue]:
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
-    original = content
-    lines = content.splitlines(keepends=True)
 
-    # Run all checks
-    issues = []
-    issues.extend(check_banned_source_math(lines, path))
-    issues.extend(check_guard_pairs(lines, path))
-    issues.extend(check_adjacent_guards(lines, path))
-    issues.extend(check_guard_coverage(lines, path))
-    issues.extend(check_format_correctness(lines, path))
-    issues.extend(check_unused_guards(lines, path))
-
-    # Auto-fix
-    if (fix or dry_run) and any(
-        iss.code in ("E005", "E004") for iss in issues
-    ):
-        new_content = fix_banned_source_math(content)
-        new_content = fix_latexmath_in_guard(new_content)
-        if new_content != content:
+    if fix or dry_run:
+        new_content, changed = apply_auto_fixes(content)
+        if changed:
             if dry_run:
                 print(f"\n  [DRY-RUN] Would apply fixes to {path}")
-                # Show diff
                 from difflib import unified_diff
                 diff = unified_diff(
                     content.splitlines(keepends=True),
@@ -351,9 +440,9 @@ def check_file(path: str, fix: bool = False, dry_run: bool = False) -> List[Issu
                     f.write(new_content)
                 print(f"  [FIXED] {path}")
             content = new_content
-            lines = content.splitlines(keepends=True)
 
-    return issues
+    lines = content.splitlines(keepends=True)
+    return run_checks(lines, path)
 
 
 def print_report(issues: List[Issue], path: str) -> int:
@@ -385,6 +474,7 @@ def find_all_asc_files(root: str) -> List[str]:
 
 
 def main():
+    global CHECKS_RUN
     parser = argparse.ArgumentParser(description="Check & fix math expressions in .asc files")
     parser.add_argument("files", nargs="*", help=".asc file(s) to check")
     parser.add_argument("--fix", action="store_true", help="Auto-fix issues")
@@ -398,7 +488,7 @@ def main():
         files = find_all_asc_files(repo_root)
         if not files:
             print("No .asc files found.")
-            return
+            sys.exit(0)
 
     if args.dry_run and args.fix:
         print("Cannot use --dry-run and --fix together. Use --dry-run for preview.")
@@ -415,18 +505,20 @@ def main():
         if not os.path.exists(fpath):
             print(f"  ⚠ File not found: {fpath}")
             continue
+        CHECKS_RUN = set()
         total_files += 1
         issues = check_file(fpath, fix=args.fix, dry_run=args.dry_run)
         total_errors += print_report(issues, fpath)
 
-    # Summary
     print(f"\n{'='*60}")
     print(f"  Scanned {total_files} file(s)")
     action = "previewed" if args.dry_run else ("fixed" if args.fix else "checked")
     print(f"  Total errors found: {total_errors}")
-    print(f"  Checks applied: {', '.join(sorted(CHECKS_RUN)) if CHECKS_RUN else 'none'}")
     print(f"  Mode: {action}")
     print(f"{'='*60}\n")
+
+    if total_errors > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
