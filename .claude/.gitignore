@@ -1,1 +1,2 @@
-skills/superpowers
+.claude/skills/*
+!.claude/skills/check-math-expression
