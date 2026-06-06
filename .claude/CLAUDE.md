@@ -19,6 +19,6 @@
 
   > **Note:** The `[latexmath]++++...++++` block form and `` ```math ... ``` `` block form are not recommended — prefer `[stem]++++...++++` and `$$...$$` respectively.
   >
-  > **Important:** Any paragraph or block containing a math expression (`\(...\)`, `\[...\]`, `stem:[...]`, `latexmath:[...]`, `[stem]++++...++++`, `[latexmath]++++...++++`) must be entirely wrapped in `ifndef`/`ifdef` guards, otherwise GitHub will fail to render it.
+  > **Important:** Every math expression must be placed inside an `ifndef`/`ifdef` guard pair — use AsciiDoc syntax (`\(...\)`, `\[...\]`, `stem:[...]`, `[stem]++++`) inside `ifndef::env-github[]` and Markdown syntax (`$...$`, `$$...$$`) inside `ifdef::env-github[]`. Putting the wrong syntax in the wrong guard (e.g. `$...$` inside `ifndef`, or `\(...\)` inside `ifdef`) defeats the purpose. Expressions found outside any guard are also reported.
   >
   > Do NOT use `[source, math]` under any format.
