@@ -1,2 +1,2 @@
-.claude/skills/*
-!.claude/skills/check-math-expression
+skills/*
+!skills/check-math-expression
