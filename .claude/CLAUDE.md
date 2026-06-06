@@ -22,3 +22,7 @@
   > **Important:** Every math expression must be placed inside an `ifndef`/`ifdef` guard pair — use AsciiDoc syntax (`\(...\)`, `\[...\]`, `stem:[...]`, `[stem]++++`) inside `ifndef::env-github[]` and Markdown syntax (`$...$`, `$$...$$`) inside `ifdef::env-github[]`. Putting the wrong syntax in the wrong guard (e.g. `$...$` inside `ifndef`, or `\(...\)` inside `ifdef`) defeats the purpose. Expressions found outside any guard are also reported.
   >
   > Do NOT use `[source, math]` under any format.
+  >
+  > **GitHub MathJax gotcha:**
+  >
+  > Inside `ifdef::env-github[]` blocks, `$...$` inline math must **not** touch Chinese characters or Chinese punctuation — GitHub's MathJax parser will fail. Add a space between `$` and any adjacent Chinese character.
