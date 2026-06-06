@@ -49,6 +49,16 @@ _UNICODE_CANDIDATE = re.compile(
     r")$"
 )
 
+# CJK 字符范围：汉字 + 中文标点
+_CJK_RE = re.compile(
+    r'[一-鿿㐀-䶿＀-￯　-〿 -⁯]'
+)
+
+
+def _is_cjk(ch: str) -> bool:
+    """Check if a character is CJK (Chinese/Japanese/Korean) or CJK punctuation."""
+    return bool(_CJK_RE.match(ch))
+
 
 def _is_guard_open(line: str) -> bool:
     return "ifndef::env-github[]" in line or "ifdef::env-github[]" in line
@@ -225,6 +235,24 @@ def check_format_correctness(lines: List[str], path: str) -> List[Issue]:
                     line=i, severity="warning", code="E004",
                     message="GitHub (ifdef) section uses AsciiDoc math syntax. Use $$...$$ or $...$ instead.",
                 ))
+
+            # E006: $...$ 前紧贴中文字符/中文标点，GitHub MathJax 渲染失败
+            # （$...$ 后紧贴中文标点通常能正常渲染，不报错）
+            for m in re.finditer(r'(?<!\$)\$[^$\n]+\$(?!\$)', line):
+                match = m.group()
+                start = m.start()
+                # 跳过独立成行的 $$...$$
+                if match.startswith('$$') and match.endswith('$$'):
+                    continue
+                # 只检查 $ 前面
+                if start > 0:
+                    prev = line[start - 1]
+                    if _is_cjk(prev):
+                        CHECKS_RUN.add("E006")
+                        issues.append(Issue(
+                            line=i, severity="error", code="E006",
+                            message=f"'{match}' 前紧贴中文字符 '{prev}'，GitHub MathJax 无法渲染。请在 '$' 前加空格。",
+                        ))
 
     return issues
 
