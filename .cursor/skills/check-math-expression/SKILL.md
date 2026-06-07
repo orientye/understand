@@ -22,6 +22,7 @@ formatting issues. Format rules are defined in [.claude/CLAUDE.md](.claude/CLAUD
 5. Manually fix anything still reported:
    - **E001 / E003** — guard structure and coverage (needs human judgment).
    - **E004 errors** — wrong syntax for the target environment.
+   - **E006** — `$...$` touching CJK characters (GitHub MathJax cannot render).
    - **W001 / W002** — warnings only; consider removing unnecessary guards or using Unicode.
 6. Script exits with code **1** when errors remain — do not treat a non-zero exit as success.
 
@@ -81,4 +82,5 @@ python tools/check-math-expression.py --all --fix
 | Guard pairing (E001) | ❌ | Report only |
 | Guard coverage (E003) | ❌ | Report only |
 | Format correctness (E004) | ❌ | Report only |
+| `$...$` touching CJK (E006) | ❌ | Report only |
 | Unicode candidates (W002) | ❌ | Report only |
