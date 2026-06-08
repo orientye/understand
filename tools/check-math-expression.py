@@ -55,6 +55,59 @@ _CJK_RE = re.compile(
 )
 
 
+def _has_stem_setting(lines: List[str]) -> bool:
+    """Check if the file has a :stem: setting in its header (first ~50 lines)."""
+    for line in lines[:50]:
+        stripped = line.strip()
+        if re.match(r"^:stem:", stripped):
+            return True
+    return False
+
+
+def _is_simple_stem_content(text: str) -> bool:
+    """Check if stem block content is simple enough for Unicode replacement."""
+    text = text.strip()
+    # Must not contain LaTeX commands beyond simple operators/relations
+    # Allow: identifiers, numbers, spaces, + - * / = < >, and common LaTeX relations
+    # Disallow: \sum, \int, \frac, \prod, \sqrt, ^{}, _{} etc.
+    if re.search(r"\\[a-z]+", text):
+        # Has LaTeX commands — check if they're all simple relational operators
+        latex_cmds = set(re.findall(r"\\([a-zA-Z]+)", text))
+        simple_cmds = {"gt", "lt", "ge", "le", "neq", "implies", "Rightarrow",
+                       "iff", "Leftrightarrow", "times", "pm", "to", "rightarrow"}
+        if not latex_cmds.issubset(simple_cmds):
+            return False
+    # Reject expressions with double backslashes (often means complex wrapping).
+    if re.search(r"\\\\", text):
+        return False
+    return True
+
+
+def _render_stem_as_unicode(text: str) -> str:
+    """Convert a stem body line to Unicode-friendly inline text."""
+    text = text.strip()
+    replacements = {
+        r"\implies": "⇒",
+        r"\Rightarrow": "⇒",
+        r"\iff": "⇔",
+        r"\Leftrightarrow": "⇔",
+        r"\ge": "≥",
+        r"\geq": "≥",
+        r"\le": "≤",
+        r"\leq": "≤",
+        r"\neq": "≠",
+        r"\gt": ">",
+        r"\lt": "<",
+        r"\times": "×",
+        r"\pm": "±",
+        r"\to": "→",
+        r"\rightarrow": "→",
+    }
+    for tex, unicode_ch in replacements.items():
+        text = text.replace(tex, unicode_ch)
+    return text.strip()
+
+
 def _is_cjk(ch: str) -> bool:
     """Check if a character is CJK (Chinese/Japanese/Korean) or CJK punctuation."""
     return bool(_CJK_RE.match(ch))
@@ -127,9 +180,12 @@ def _report_e003(issues: List[Issue], line: int, expr: str) -> None:
 def check_guard_coverage(lines: List[str], path: str) -> List[Issue]:
     """E003: Math expressions must be wrapped in guards."""
     issues = []
+    has_stem = _has_stem_setting(lines)
     in_guard = False
     in_stem_block = False
+    stem_block_lines: List[int] = []
     in_latexmath_block = False
+    latexmath_block_lines: List[int] = []
 
     for i, line in enumerate(lines, 1):
         if _is_guard_open(line):
@@ -145,39 +201,73 @@ def check_guard_coverage(lines: List[str], path: str) -> List[Issue]:
         stripped = line.strip()
 
         if in_stem_block:
+            stem_block_lines.append(i)
             if stripped == "++++":
+                # End of stem block — decide: Unicode vs guard wrap
+                content = " ".join(
+                    lines[j - 1].strip()
+                    for j in stem_block_lines[:-1]  # exclude the closing ++++
+                )
+                if _is_simple_stem_content(content):
+                    unicode_text = _render_stem_as_unicode(content)
+                    CHECKS_RUN.add("E003")
+                    issues.append(Issue(
+                        line=stem_block_lines[0], severity="error", code="E003",
+                        message=f"[stem]++++...++++ block outside guards. Content is simple — "
+                                f"replace with Unicode text: `{unicode_text}`.",
+                        fix="unicode",
+                    ))
+                else:
+                    CHECKS_RUN.add("E003")
+                    issues.append(Issue(
+                        line=stem_block_lines[0], severity="error", code="E003",
+                        message=f"[stem]++++...++++ block outside guards. Wrap in "
+                                f"ifndef::env-github[] / ifdef::env-github[].",
+                        fix="wrap",
+                    ))
                 in_stem_block = False
+                stem_block_lines = []
             continue
 
         if in_latexmath_block:
+            latexmath_block_lines.append(i)
             if stripped == "++++":
+                CHECKS_RUN.add("E003")
+                issues.append(Issue(
+                    line=latexmath_block_lines[0], severity="error", code="E003",
+                    message=f"[latexmath]++++...++++ block outside guards. Wrap in "
+                            f"ifndef::env-github[] / ifdef::env-github[].",
+                    fix="wrap",
+                ))
                 in_latexmath_block = False
+                latexmath_block_lines = []
             continue
 
         if "[stem]++++" in line:
             in_stem_block = True
-            _report_e003(issues, i, "[stem]++++...++++")
+            stem_block_lines = [i]
             continue
 
         if "[latexmath]++++" in line:
             in_latexmath_block = True
-            _report_e003(issues, i, "[latexmath]++++...++++")
+            latexmath_block_lines = [i]
             continue
 
-        if re.search(r"\\\([^)]*\\\)", line):
-            _report_e003(issues, i, "\\(...\\)")
-        if re.search(r"\\\[[^\]]*\\\]", line):
-            _report_e003(issues, i, "\\[...\\]")
-        if re.search(r"stem:\[[^\]]+\]", line):
-            _report_e003(issues, i, "stem:[...]")
-        if re.search(r"latexmath:\[[^\]]+\]", line):
-            _report_e003(issues, i, "latexmath:[...]")
-        if re.search(r"(?<!\$)\$[^$\n]+\$(?!\$)", line):
-            _report_e003(issues, i, "$...$")
-        if re.search(r"\$\$[^$]+\$\$", line):
-            _report_e003(issues, i, "$$...$$")
-        if "```math" in line:
-            _report_e003(issues, i, "```math")
+        if has_stem:
+            if re.search(r"\\\([^)]*\\\)", line):
+                _report_e003(issues, i, "\\(...\\)")
+            if re.search(r"\\\[[^\]]*\\\]", line):
+                _report_e003(issues, i, "\\[...\\]")
+            if re.search(r"stem:\[[^\]]+\]", line):
+                _report_e003(issues, i, "stem:[...]")
+            if re.search(r"latexmath:\[[^\]]+\]", line):
+                _report_e003(issues, i, "latexmath:[...]")
+            if re.search(r"(?<!\$)\$[^$\n]+\$(?!\$)", line):
+                _report_e003(issues, i, "$...$")
+            if re.search(r"\$\$[^$]+\$\$", line):
+                _report_e003(issues, i, "$$...$$")
+            if "```math" in line:
+                _report_e003(issues, i, "```math")
 
     return issues
 
@@ -437,9 +527,103 @@ def fix_latexmath_in_guard(content: str) -> str:
     return "".join(rebuilt)
 
 
+def fix_stem_bare_blocks(content: str) -> str:
+    """Fix bare [stem]++++...++++ blocks outside guards:
+    - simple content → Unicode inline text
+    - complex content → wrap in ifndef/ifdef guards
+    """
+    lines = content.splitlines(keepends=True)
+    result: List[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        # Match [stem] on its own line followed by ++++ on the next line
+        # OR [stem]++++ on the same line
+        is_stem_start = False
+        stem_line_index = i
+        if stripped == "[stem]":
+            # Check next line for ++++
+            if i + 1 < len(lines) and lines[i + 1].strip() == "++++":
+                is_stem_start = True
+                stem_line_index = i
+            # Also handle [stem] as bare content with no guard (check context)
+            # We need to ensure we're NOT inside a guard block
+        elif re.match(r"^\s*\[stem\]\+\+\+\+", line):
+            is_stem_start = True
+            stem_line_index = i
+
+        if is_stem_start:
+            # Check if we're inside a guard by scanning backwards
+            # If we see a guard OPEN (ifndef/ifdef) before a guard CLOSE (endif),
+            # then [stem] is inside that guard — skip.
+            inside_guard = False
+            for k in range(stem_line_index - 1, -1, -1):
+                prev = lines[k].strip()
+                if _is_guard_open(prev):
+                    inside_guard = True
+                    break
+                if _is_guard_close(prev):
+                    # Hit a stray endif or are between endif and ifdef — not inside guard
+                    inside_guard = False
+                    break
+            if inside_guard:
+                # Let guard-handling code manage it
+                result.append(line)
+                i += 1
+                continue
+
+            # Skip past the [stem] line
+            start_body = stem_line_index + 1
+            if stripped == "[stem]":
+                # Skip the ++++ line too
+                start_body = stem_line_index + 2
+
+            # Find body lines until closing ++++
+            block_body: List[int] = []
+            j = start_body
+            while j < len(lines):
+                if lines[j].strip() == "++++":
+                    break
+                block_body.append(j)
+                j += 1
+
+            if j < len(lines):
+                end = j
+                body_text = " ".join(
+                    lines[k].strip() for k in block_body
+                )
+                if _is_simple_stem_content(body_text):
+                    # Replace with Unicode
+                    unicode_text = _render_stem_as_unicode(body_text)
+                    result.append(f"`{unicode_text}`\n")
+                else:
+                    # Wrap in guards
+                    body_indent = ""
+                    m = re.match(r"^(\s*)", line)
+                    if m:
+                        body_indent = m.group(1)
+                    result.append(f"{body_indent}ifndef::env-github[]\n")
+                    result.append(f"{body_indent}[stem]\n")
+                    result.append(f"{body_indent}++++\n")
+                    for k in block_body:
+                        result.append(lines[k])
+                    result.append(f"{body_indent}++++\n")
+                    result.append(f"{body_indent}endif::[]\n")
+                    result.append(f"{body_indent}ifdef::env-github[]\n")
+                    result.append(f"{body_indent}$${body_text.strip()}$$\n")
+                    result.append(f"{body_indent}endif::[]\n")
+                i = end + 1
+                continue
+        result.append(line)
+        i += 1
+    return "".join(result)
+
+
 def apply_auto_fixes(content: str) -> Tuple[str, bool]:
     new_content = fix_latexmath_in_guard(content)
     new_content = fix_banned_source_math(new_content)
+    new_content = fix_stem_bare_blocks(new_content)
     return new_content, new_content != content
 
 
@@ -462,7 +646,13 @@ def check_file(path: str, fix: bool = False, dry_run: bool = False) -> List[Issu
                     tofile=f"b/{path}",
                 )
                 for dline in diff:
-                    print(f"    {dline}", end="")
+                    # Handle Unicode characters in diff output for Windows console
+                    try:
+                        print(f"    {dline}", end="")
+                    except UnicodeEncodeError:
+                        encoded = dline.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                        # Also strip or replace remaining problematic chars
+                        print(encoded.encode('ascii', errors='replace').decode('ascii'), end="")
             elif fix:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(new_content)
