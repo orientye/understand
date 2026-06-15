@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python tools/check-math-expression.py \"c:\\\\orient\\\\my\\\\understand\\\\distributed\\\\一致性.asc\")"
+    ]
+  }
+}
