@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python tools/check-math-expression.py \"c:\\\\orient\\\\my\\\\understand\\\\distributed\\\\一致性.asc\")",
-      "Bash(python tools/check-math-expression.py network/http.asc)",
-      "Bash(python tools/check-urls.py network/http.asc --timeout 15 --concurrency 10 --verbose)"
-    ]
-  }
-}
