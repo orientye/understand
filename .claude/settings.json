@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python tools/check-math-expression.py math/概率论.asc)"
+      "Bash(python tools/check-math-expression.py math/概率论.asc)",
+      "Bash(python tools/check-math-expression.py ai/reinforcement-learning.asc)",
+      "Bash(awk 'NR>=165 && NR<=195 {printf \"%d: %s\\\\n\", NR, $0}' ai/reinforcement-learning.asc)"
     ]
   }
 }
