@@ -26,3 +26,5 @@
   > **GitHub MathJax gotcha:**
   >
   > Inside `ifdef::env-github[]` blocks, `$...$` inline math must **not** touch Chinese characters or Chinese punctuation — GitHub's MathJax parser will fail. Add a space between `$` and any adjacent Chinese character.
+
+- Tool-call JSON truncation (Windows/Git Bash): when a Bash/Read/Edit/Write call fails with `InputValidationError: ... could not be parsed as JSON` and `You sent (first N of M bytes)` shows N < M, the cause is transport-layer truncation of the parameter, not a syntax error. It triggers when the argument contains Chinese or exceeds ~200 bytes. Do NOT retry with different quoting, heredoc, or `python -c` -- it truncates again. Instead Write a `.py` file (use `io.open(path, encoding="utf-8")` to dodge the GBK locale pitfall) and run `python script.py` as a pure-ASCII one-liner. Rule: if a Bash argument has Chinese or is > ~200 bytes, put it in a file.
