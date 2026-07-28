@@ -1,0 +1,1720 @@
+96 chapter 4 Improving reasoning with inference-time scaling
+Inference-time scaling (this chapter) Training (after chapter 5)
+Spending more
+resources during Spending more resources
+inference can result for training can result in
+in better accuracy. better accuracy.
+Less expensive More expensive
+Figure 4.2 Comparing inference-time scaling (discussed in this chapter) and training-time scaling (discussed in
+chapters 6-8). Both approaches improve accuracy by using more compute, but inference-time scaling does this on
+the fly, without changing the model’s weight parameters. The plots are inspired by OpenAI’s article introducing its
+first reasoning model (https://openai.com/index/learning-to-reason-with-llms/).
+model’s weights, we let the trained model do more work per question, such as by gen-
+erating more tokens and “thinking” longer, sampling multiple answers, or successively
+refining its answer.
+In this book, we’ll focus on three practical and foundational inference-time tech-
+niques (illustrated in figure 4.3):
+¡ Method 1: Extending the chain-of-thought response to prompt the model
+to explain its reasoning. This simple technique can substantially improve
+accuracy.
+¡ Method 2: Parallel sampling via self-consistency, where the model generates multi-
+ple responses and selects the most frequent one.
+¡ Method 3: Iterative self-refinement, where the model reviews and improves its own
+reasoning and answers across multiple steps.
+These methods fall under the category of inference-time scaling because they cause
+the model to generate more tokens, which increases compute requirements during
+inference. They improve accuracy while making inference more expensive, which is a
+common theme of inference-time-scaling techniques. In this chapter, we’ll discuss the
+first two methods; the third will be covered in chapter 5.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Introduction to inference-time scaling 97
+1 Load pretrained LLM
+Chain-of-thought
+2 prompting 3 Temperature scaling 66 Logprob scoring
+1st inference-scaling
+method
+4 Top-p filtering 7 Self-refinement
+User prompt
+3rd inference-scaling
+Half the value of 3x-9 is method
+x+37. What is the value of x?
+Explain step by step. 5 Self-consistency sampling User prompt
+2nd inference-scaling
+Half the value of 3x-9 is
+1. Set up the equation: … method xx++3377.. WWhhaatt iiss tthhee vvaalluuee oof x?
+2. Eliminate the fraction …
+Final answer: 83
+First LLM
+User prompt 2211
+LLM response response
+Half the value of 3x-9 is
+x+37. What is the value of x?
+The answer is missing a step
+of solving for x in the
+This first inference-scaling LLM responses 188 833 equation.
+LLM response
+method changes the prompt to
+EExxpppllaannaattiioon:
+encourage the LLM to explain 833 544 222 111.. SSStttaaarrrtt wwiitthh tthhee ggiivven
+the answer (covered in this eeeqquuaattiioon
+…
+chapter). Moosstt ffrreeqquueenntt aannsswweerr:: 83 Final answer: 83
+The second method lets the LLM The third method lets the LLM
+generate multiple answers and improve (refine) its own answer
+then select the most frequent one sequentially (covered in the next
+(covered in this chapter). chapter).
+Figure 4.3 Three inference-time methods to improve reasoning. The first modifies the prompt to encourage
+step-by-step reasoning, and the second samples multiple answers and selects the most frequent one. Those two
+approaches are discussed in this chapter. The third method, in which the model iteratively refines its own response,
+is introduced in the next chapter.
+The first method improves answer accuracy by prompting the model to explain its rea-
+soning, a simple yet highly effective approach.
+The second method samples multiple responses for the same input and selects the
+most frequent one. We’ll do this by extending the text generation function introduced
+in the previous chapter and implementing self-consistency, a voting-based inference-time-
+scaling technique.
+In total, I evaluated more than ten different inference-time-scaling techniques across
+thousands of experiments. I chose the three methods illustrated in figure 4.3 because
+they combine three desirable properties: they improve accuracy on the model used
+here, they represent the main practical paradigms of inference-time scaling, and they
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+98 chapter 4 Improving reasoning with inference-time scaling
+are simple enough to implement from scratch without too much extra machinery. They
+also cover the two main patterns: generating longer responses and generating multiple
+responses.
+Longer responses that include reasoning and explanations (methods 1 and 3) are
+what we typically expect from reasoning models. Parallel sampling (method 2) is also
+widely used in production systems, such as Claude 4 (as described in the May 2025 intro-
+duction of Claude 4: https://www.anthropic.com/news/claude-4).
+4.2 Loading a pretrained model
+Before we begin implementing inference-time-scaling methods, we’ll load the pre-
+trained base model and tokenizer. The following code is similar to the code we used in
+the previous chapter.
+Listing 4.1 Load tokenizer and base model
+import torch
+from reasoning_from_scratch.ch02 import get_device
+from reasoning_from_scratch.ch03 import (
+load_model_and_tokenizer
+)
+Delete this line to run the code on a
+device = get_device()
+GPU (if supported by your machine).
+device = torch.device("cpu")
+model, tokenizer = load_model_and_tokenizer(
+which_model="base",
+device=device,
+use_compile=False
+)
+Since the code in this chapter is cheap to run, I recommend running it on the "cpu"
+device the first time to get the same results that are shown in this chapter (running it
+on a GPU can subtly alter the results).
+Let’s try the model on a prompt from the MATH-500 dataset, which we worked with
+in the previous chapter:
+from reasoning_from_scratch.ch03 import render_prompt
+raw_prompt = (
+"Half the value of $3x-9$ is $x+37$. "
+"What is the value of $x$?"
+)
+prompt = render_prompt(raw_prompt)
+print(prompt)
+The formatted prompt is as follows:
+You are a helpful math assistant.
+Answer the question and write the final result on a new line as:
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Loading a pretrained model 99
+\boxed{ANSWER}
+Question:
+Half the value of $3x-9$ is $x+37$. What is the value of $x$?
+Answer:
+We can use the preceding prompt as input to the generate_text_stream_concat func-
+tion we defined in the previous chapter.
+We want to compare several inference-time-scaling strategies, so we’ll make a small
+modification to the text generation wrapper that will let us swap in different generation
+functions and settings without changing the surrounding prompt-handling and output
+code. The changes are highlighted in the code comments in the following listing.
+Listing 4.2 Modified generate_text_stream_concat function
+from reasoning_from_scratch.ch02 import generate_text_basic_stream_cache
+def generate_text_stream_concat_flex(
+model, tokenizer, prompt, device, max_new_tokens,
+verbose=False,
+generate_func=None, We add parameters to accept a text generation
+**generate_kwargs function and additional arguments.
+):
+if generate_func is None: If the text generation
+generate_func = generate_text_basic_stream_cache function is undefined,
+we use generate_text_
+input_ids = torch.tensor( basic_stream_cache
+tokenizer.encode(prompt), device=device similar to chapter 3.
+).unsqueeze(0)
+generated_ids = []
+for token in generate_func(
+model=model,
+token_ids=input_ids,
+max_new_tokens=max_new_tokens, We can pass additional
+arguments to the text
+eos_token_id=tokenizer.eos_token_id,
+generation function if needed.
+**generate_kwargs,
+):
+next_token_id = token.squeeze(0)
+generated_ids.append(next_token_id.item())
+if verbose:
+print(
+tokenizer.decode(next_token_id.tolist()),
+end="",
+flush=True
+)
+return tokenizer.decode(generated_ids)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+100 chapter 4 Improving reasoning with inference-time scaling
+In short, the preceding generate_text_stream_concat_flex function is similar to the
+generate_text_stream_concat function from the previous chapter, except that we can
+now pass the text generation function (such as generate_text_basic_stream_cache) as
+an argument instead of hardcoding it. The practical benefit is that the outer wrapper
+can keep handling the prompt encoding, streaming, and decoding in one place, while
+the inner generation step can be replaced with different decoding strategies. This
+makes it easier to compare methods fairly, because we are changing only the genera-
+tion logic rather than the entire pipeline. In future sections, we’ll swap the g enerate_
+text_basic_stream_cache function for more advanced functions.
+The use of the generate_text_basic_stream_cache function is also similar to before,
+except that we can now pass the function explicitly:
+response = generate_text_stream_concat_flex(
+model, tokenizer, prompt, device,
+max_new_tokens=2048, verbose=True,
+generate_func=generate_text_basic_stream_cache
+)
+This is the generated output:
+\boxed{20}
+Note that this answer is wrong; the correct solution is 83. In the remainder of this chap-
+ter and the next, we’ll implement inference-time-scaling methods to get the model to
+generate the correct answer.
+4.3 Generating better responses with chain-of-thought prompting
+We’ve loaded the pretrained base model and set up the text generation function; now
+we’ll focus on improving model output through so-called chain-of-thought prompting.
+This prompting technique is classic, simple, and effective. It modifies the input prompt
+to encourage the LLM to generate an explanation, or a chain of thought (also called a
+reasoning chain), as illustrated in figure 4.4.
+The simplest way to try chain-of-thought prompting is to append an extra instruction
+that asks the model to reason step by step. There are multiple ways to phrase this. For
+example, the original paper on the topic used "Let's think step by step." (https://
+arxiv.org/abs/2205.11916), but different phrasings may work better depending on the
+model and task. Here, we’ll use "Explain step by step." because it worked well in my
+experiments for this chapter, and it keeps the example simple:
+prompt_cot = prompt + " \n\nExplain step by step."
+response_cot = generate_text_stream_concat_flex(
+model, tokenizer, prompt_cot, device,
+max_new_tokens=2048, verbose=True,
+)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Generating better responses with chain-of-thought prompting 101
+1 Load pretrained LLM
+Chain-of-thought
+2 prompting 3 Temperature scaling 6 Logprob scoring
+1st inference-scaling
+method
+4 Top-p filtering 7 Self-refinement
+User prompt
+3rd inference-scaling
+Half the value of 3x-9 is method
+x+37. What is the value of x?
+Explain step by step.
+5 Self-consistency sampling
+2nd inference-scaling
+1. Set up the equation: … method
+2. Eliminate the fraction …
+Final answer: 83
+LLM response
+This first method changes the
+prompt to encourage the LLM
+to explain the answer.
+Figure 4.4 Our first inference-time method, chain-of-thought prompting, modifies the prompt to encourage the
+model to explain its reasoning, step by step, before producing a final answer.
+The response is now as follows:
+To solve the problem, we need to find the value of \( x \) such that
+half the value of \( 3x - 9 \) is equal to \( x + 37 \).
+# ... The response was truncated to save space.
+### Step 3: Solve for \( x \)
+Subtract \( 2x \) from both sides to isolate \( x \):
+\[
+3x - 2x - 9 = 74
+\]
+Simplify:
+\[
+x - 9 = 74
+\]
+Add 9 to both sides to solve for \( x \):
+\[
+x = 74 + 9
+\]
+\[
+x = 83
+\]
+### Final Answer:
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+102 chapter 4 Improving reasoning with inference-time scaling
+\[
+\boxed{83}
+\]
+As you can see, the model now writes a lengthy step-by-step explanation and, in this
+case, arrives at the correct answer.
+This simple chain-of-thought prompt is a good demonstration of the inference-time-
+scaling tradeoff. While the model now answers correctly, it expends many more tokens
+than before. As discussed in chapter 2, LLMs generate text one token at a time, and
+each additional token requires another forward pass through the model. So these inter-
+mediate reasoning steps do not just make the answer longer; they also directly increase
+latency, compute cost, and often API cost.
+Note that while the model generated the correct answer in this case, not all
+problems benefit from chain-of-thought prompting. On simple problems, it
+can sometimes even degrade the model’s performance, as the model might gen-
+erate erroneous explanations and mislead itself. This phenomenon is known as
+“overthinking.”
+Lastly, not every model benefits from the “Explain step by step” (or similar) instruc-
+tion. In this case, we used a simple base model that doesn’t always generate explana-
+tions, so chain-of-thought prompting can help. Trained reasoning models, such as the
+“reasoning” variant of the Qwen3 model we used in the previous chapter, already write
+explanations alongside their responses and don’t need or benefit from this type of
+chain-of-thought prompting.
+Why chain-of-thought can improve accuracy
+Chain-of-thought prompting asks the model to write out the intermediate steps that
+lead to a final answer. This helps in two practical ways.
+First, walking through the steps gives the model more opportunities to correct itself.
+Second, step-by-step reasoning matches the way many training examples are
+written. For instance, large math and logic datasets often contain detailed solu-
+tions, so asking for a chain of thought aligns the model with patterns it has already
+learned.
+At the same time, chain-of-thought reasoning is no guarantee of correctness. It
+can still produce faulty reasoning, and for very simple problems it may even intro-
+duce unnecessary steps that lead to more mistakes. In other words, chain-of-
+thought can improve accuracy on many reasoning tasks, but it is not universally
+beneficial.
+Overall, chain-of-thought prompting does not provide the model with new knowledge,
+but it changes how the model uses its existing knowledge. Often, this shift can lead
+to more reliable answers. This is especially true for math, code, logic, and other mul-
+tistep problems.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 103
+Exercise 4.1: Using chain-of-thought prompting on MATH-500
+Modify the evaluate_math500_stream function from listing 3.15 to see whether
+chain-of-thought prompting improves the MATH-500 accuracy of the base model.
+4.4 Controlling output diversity with temperature scaling
+The previous section gave a brief taste of inference-time scaling by extending the mod-
+el’s answer via chain-of-thought prompting. Chain-of-thought prompting can be seen
+as a sequential technique because it extends the number of next-token prediction
+steps.
+In the remainder of this chapter, we’ll implement a self-consistency technique (also
+called self-consistency sampling) that generates multiple answers, as illustrated in fig-
+ure 4.5. This technique was formally described in the Google Research paper “Self-
+Consistency Improves Chain of Thought Reasoning in Language Models” (https://
+arxiv.org/abs/2203.11171).
+Temperature scaling is part of a
+1 Load pretrained LLM
+method that helps with influencing
+how an LLM selects its next token.
+Chain-of-thought
+2 promptin g 3 Temperature scaling
+1st inference-scaling
+method 3.1 Get next-token scores
+4 Top-p filtering
+User prompt
+3.2 Rescale next-token scores
+Half the value of 3x-9 is
+x+37. What is the value of x?
+5 Self-consistency sampling
+LLM responses 18 83 2nd inference-scaling Convert next-token scores
+method 3.3 into a probability distribution
+83 54 22
+Most frequent answer: 83
+Self-consistency sampling lets the 3.4 Sample the next token
+LLM generate multiple answers and
+then select the most frequent one;
+to enable this, we need to implement
+temperature scaling first.
+Figure 4.5 Self-consistency sampling, our second inference-time method, generates multiple answers and selects
+the most frequent one. This method relies on temperature scaling, which influences how the model samples its
+next token.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+104 chapter 4 Improving reasoning with inference-time scaling
+Since the multiple answers generated with this technique are independent of each
+other, this can be implemented through parallel sampling (if you have the necessary
+resources, such as multiple GPUs), which won’t increase the time for the user to get an
+answer. (Chain-of-thought prompting can be combined with this technique, but more
+on that later.)
+Before we implement self-consistency sampling (step 5 in figure 4.5), we first need
+to extend the text generation function so that it can produce different answers for
+the same prompt. To achieve this, we’ll implement two techniques that allow the
+model to sample different responses: temperature scaling (step 3) and top-p filtering
+(step 4).
+Temperature scaling is the main focus of this section; it will be one of the key con-
+trols for output diversity in the rest of this chapter, and it forms the basis for the
+top-p filtering method that follows. First, though, we’ll look at how the next token
+is sampled in an LLM. These low-level sampling controls may seem overly technical,
+but they are what will let us generate diverse candidate answers for self-consistency
+sampling.
+4.4.1 Understanding the process of selecting the next token
+Let’s take a closer look at the text generation process we’ve implemented so far and see
+how the next-token selection process works under the hood. This will help you under-
+stand the motivation behind temperature scaling.
+Suppose we have the following simple prompt:
+ex_prompt = "The capital of Germany is"
+response = generate_text_stream_concat_flex(
+model, tokenizer, ex_prompt, device,
+max_new_tokens=1, verbose=True
+)
+The model’s response is " Berlin". This looks relatively simple, but multiple steps are
+happening under the hood, as illustrated in figure 4.6.
+When generating text, the inputs are first converted into token IDs (as discussed in
+chapter 2):
+input_token_ids = torch.tensor(
+tokenizer.encode(ex_prompt), device=device
+).unsqueeze(0)
+print(input_token_ids)
+In this case, these are the token IDs:
+tensor([[ 785, 6722, 315, 9856, 374]])
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 105
+The model computes a score distribution over the entire vocabulary (set of possible
+tokens); we select the token with the highest score as the next generated token.
+3. Find vocabulary Berlin
+index with highest
+score
+19846
+2. Get scores for
+next token
+LLM
+785, 6722, 315, 9856, 374
+The capital of Germany is
+1. Convert input text
+into token IDs
+Figure 4.6 How an LLM generates the next token. As in all process diagrams in this book, the flow runs from
+bottom to top. The model converts the input into token IDs, computes scores for all possible next tokens, and
+selects the one with the highest score as the next output.
+In the second step in figure 4.6, we get the scores for the output token we want to gen-
+erate. These output scores are also called logits. An LLM generates one output token
+for each input token, but we are interested only in the last token, which we select
+via the [:, -1] tensor indexing. This last token corresponds to the token we want to
+generate:
+with torch.inference_mode():
+next_token_logits = model(input_token_ids)[:, -1]
+print(next_token_logits.shape)
+The printed output shape is [1, 151936], where 151936 is the vocabulary size for this
+tokenizer and model. The vocabulary includes all the unique tokens the tokenizer can
+handle and the LLM can generate.
+To obtain the next generated token (" Berlin" in this example), we have to find the
+vocabulary entry associated with the largest score (step 3 in figure 4.6):
+max_token_id = torch.argmax(next_token_logits)
+print(f"Token ID: {max_token_id}")
+print(f"Decoded token: '{tokenizer.decode([max_token_id])}'")
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+106 chapter 4 Improving reasoning with inference-time scaling
+The output follows:
+Token ID: 19846
+Decoded token: ' Berlin'
+We’ve now covered the three main steps in generating the next token. Before we move
+on to the next section, let’s take a closer look at the score distribution of the next_
+token_logits tensor we passed to the torch.argmax function to obtain the token IDs.
+We’ll plot it in Matplotlib.
+Listing 4.3 Plotting the next-token logit scores
+import matplotlib.pyplot as plt
+def plot_scores_bar( Select the vocabulary subsection.
+next_token_logits, start=19_800, end=19_900,
+arrow=True, ylabel="Logit value" .cpu() is a shortcut for
+): to(torch.device(“cpu”)).
+x = torch.arange(start, end)
+logits_section = next_token_logits[0, start:end].float().cpu()
+plt.bar(x, logits_section) Plot the logits (scores) within
+plt.xlabel("Vocabulary index") the selected range.
+plt.ylabel(ylabel)
+if arrow: Draw an arrow to highlight
+max_idx = torch.argmax(logits_section) the largest score.
+plt.annotate(
+"Berlin",
+xy=(x[max_idx], logits_section[max_idx]),
+xytext=(x[max_idx] - 25, logits_section[max_idx] - 2),
+arrowprops={
+"facecolor": "black", "arrowstyle": "->", "lw": 1.5
+},
+fontsize=10,
+)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+plot_scores_bar(next_token_logits)
+We are restricting the plot to the 100 vocabulary index tokens between 19,800 and
+19,900, rather than plotting the scores for all 151,936 entries, which would make the
+plot too crowded. I selected this range because it contains the entry with the highest
+score. The resulting plot is shown in figure 4.7.
+The plot in figure 4.7 shows the 100 logit values (scores) for vocabulary indices
+19,800–19,899. The values range approximately from –8 to 20, and the value 20 corre-
+sponds to the vocabulary index for the token " Berlin".
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 107
+Figure 4.7 Next-
+token logits for a
+100-token slice
+of a language
+model’s much larger
+vocabulary. Each
+bar represents one
+possible token’s score
+within this slice, with
+"Berlin" having the
+highest logit value
+and being selected as
+the next token.
+4.4.2 Rescaling token scores (logits) via a temperature parameter
+Now that you know how the model selects its next token, we can introduce the concept
+of temperature. Temperature, or, more precisely, the temperature parameter, rescales
+the logits, which makes the corresponding probability distribution sharper or flatter
+and thereby affects how the next token is selected.
+As shown in figure 4.8, this section focuses on rescaling the next-token logits with a
+temperature parameter before using them for sampling. Rescaling here means adjust-
+ing the magnitude of the scores so the sampling step becomes more or less sensitive to
+differences in the scores.
+The code for implementing the temperature rescaling step (step 3.2 in figure 4.8),
+is relatively short and simple. In essence, the following code rescales the logit values
+before converting them to probabilities (discussed in the next section).
+Listing 4.4 Rescaling next-token scores via temperature scaling
+def scale_logits_by_temperature(logits, temperature):
+if temperature <= 0:
+raise ValueError("Temperature must be positive")
+return logits / temperature
+In practice, temperature values are expected to be positive numbers, so we raise an
+error if the temperature is zero or less. We will add more temperature-scaling safe-
+guards later, when we add temperature scaling to our text generation function.
+For all other values, the logits are divided by the temperature. A temperature of 1.0
+means no change, because dividing a number by 1 leaves it unchanged. A temperature
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+108 chapter 4 Improving reasoning with inference-time scaling
+1 Load pretrained LLM
+Chain-of-thought
+2 promptin g 3 Temperature scaling
+1st inference-scaling
+method 3.1 Get next-token scores
+4 Top-p filtering
+User prompt
+3.2 Rescale next-token scores
+Half the value of 3x-9 is
+x+37. What is the value of x?
+5 Self-consistency sampling
+LLM responses 18 83 2nd inference-scaling Convert next-token scores
+method 3.3 into a probability distribution
+83 54 22
+Most frequent answer: 83
+3.4 Sample the next token
+In this section, we flatten and
+sharpen the score distribution.
+Figure 4.8 In this section, we’ll implement the core part of temperature scaling (step 3.2), which adjusts the
+next-token scores. This lets us control how confidently the model selects its next token in later steps.
+lower than 1.0 makes the distribution sharper, which makes the model more confident
+when it selects the next token. Temperatures higher than 1.0 flatten the logit distribu-
+tion, which can make sampling (step 3.4 in figure 4.8) more diverse. In other words,
+higher temperatures reduce the probability gap between the top token and lower-
+ranked tokens, increasing the chance that sampling will pick a non-maximum token.
+Let’s see this scale_logits_by_temperature function in action. We’ll try it out with
+relatively extreme temperature values of 0.5 and 5.0 for a stronger effect.
+Listing 4.5 Plotting the temperature-rescaled logits
+def plot_logits_with_temperature(
+next_token_logits, start=19_800, end=19_900,
+temps=(0.5, 5.0),
+): Apply
+x = torch.arange(start, end) temperature
+logits_orig = next_token_logits[0, start:end].float().cpu() scaling.
+logits_scaled = [
+scale_logits_by_temperature(logits_orig, T) for T in temps
+]
+plt.plot(x, logits_orig, label="Original logits", lw=2) Plot the logits
+plt.plot( (scores) within the
+x, logits_scaled[0], selected range.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 109
+label=f"T={temps[0]} (sharper)", ls="--", lw=1
+)
+Plot the logits
+plt.plot( (scores) within the
+x, logits_scaled[1], selected range.
+label=f"T={temps[1]} (flatter)", ls=":", lw=3
+)
+# Highlight max logit
+max_idx = torch.argmax(logits_orig) D r a w a n a r r ow t o highlight
+plt.annotate( t h e la r g es t s c o re .
+"Berlin",
+xy=(x[max_idx], logits_orig[max_idx]),
+xytext=(x[max_idx] - 25, logits_orig[max_idx] + 2),
+arrowprops={"facecolor": "black", "arrowstyle": "->", "lw": 1.5},
+fontsize=12,
+)
+plt.xlabel("Vocabulary index")
+plt.ylabel("Logit value")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+plot_logits_with_temperature(
+Run the rescaling and plotting
+next_token_logits,
+with temperatures 0.5 and 5.
+temps=(0.5, 5.0)
+)
+As shown in figure 4.9, the larger temperature (5.0) yields a much flatter score distri-
+bution, while the smaller temperature (0.5) yields a much sharper one.
+Figure 4.9 The
+effect of temperature
+scaling on logits.
+Lower temperatures
+make the distribution
+sharper, while higher
+temperatures flatten
+it. (Note that this
+visualization is shown
+as a line plot for
+readability; a bar plot
+would more accurately
+represent the
+individual vocabulary
+scores.)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+110 chapter 4 Improving reasoning with inference-time scaling
+The plotting code in listing 4.5 is very similar to the plotting code in listing 4.3. In addi-
+tion to applying temperature scaling, we are now using a line plot (plt.plot) instead
+of a bar plot (plt.bar). Although a bar plot is technically a better choice for the dis-
+crete vocabulary indices on the x-axis, a line plot makes it easier to visualize and com-
+pare the rescaled logits in this case.
+The important point is not the absolute height of a logit by itself, but how the differ-
+ences between logits change. If a token such as "Berlin" stands out more strongly than
+the alternatives, it is more likely to be selected later. If the differences shrink, lower-
+ranked tokens become more likely to be selected. The next section will illustrate this by
+converting the logits into probabilities.
+Why temperature?
+The term temperature comes from physics, where temperature controls how much
+randomness or movement there is in a system. In LLMs, we use the same idea to
+control how confidently or creatively the model chooses its next token, as you’ll see in
+the following sections.
+4.4.3 Sampling the next token from a probability distribution
+In the previous section, we rescaled the logit values with different temperature val-
+ues. This lets us influence how the model selects the next token. Before we get to
+the next-token sampling portion in the next section, we’ll add one more intermediate
+step: converting the rescaled logits into probability scores, as shown in figure 4.10.
+To demonstrate how rescaled logits are converted into probability scores (step 3.3
+of figure 4.10), we’ll use a temperature of 5.0, which will make it easier to visualize the
+resulting probabilities in a plot. The " Berlin" token, for example, has such a high logit
+value that it would otherwise dominate the scale, making it difficult to see the probabil-
+ities of the surrounding tokens.
+The conversion from rescaled logits to probability scores can be done with a single
+function call, torch.softmax, as shown in the following listing.
+Listing 4.6 Sampling the next token from a probability distribution
+Step 3.2: Rescale next-token scores
+rescaled_logits = scale_logits_by_temperature(next_token_logits, 5.0)
+next_token_probas = torch.softmax( Step 3.3: Convert rescaled logits
+rescaled_logits, dim=-1 into probability scores
+)
+This torch.softmax function normalizes the logit values to the range from 0 to 1, such
+that they sum to 1. We can confirm that with the following code:
+print("Probability sum:", torch.sum(next_token_probas))
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 111
+1 Load pretrained LLM
+Chain-of-thought
+2 promptin g 3 Temperature scaling
+1st inference-scaling
+method 3.1 Get next-token scores
+4 Top-p filtering
+User prompt
+3.2 Rescale next-token scores
+Half the value of 3x-9 is
+x+37. What is the value of x?
+5 Self-consistency sampling
+LLM responses 18 83 2nd inference-scaling Convert next-token scores
+method 3.3 into a probability distribution
+83 54 22
+Most frequent answer: 83
+In this section, we cover steps 3.3 and 3.4 Sample the next token
+3.4, where we sample the next token
+from a probability distribution.
+Figure 4.10 Overview of the sampling process for generating tokens. Here, we focus on steps 3.3 and 3.4, where
+the next-token scores are converted into a probability distribution. The next token will be sampled based on that
+distribution.
+Additionally, let’s visualize the converted scores by reusing the plot_scores_bar func-
+tion from listing 4.3:
+plot_scores_bar(
+next_token_probas, arrow=False, ylabel="Probability value"
+)
+The resulting plot, now with the probability values on the y-axis, is shown in figure
+4.11, where we can see that token ID 19,846 (" Berlin") has the highest value in this
+selected vocabulary range. The probability is 0.0003, which we can confirm with the
+following code:
+print("Token ID 19,846 probability:", next_token_probas[:, 19846])
+Note that while this 0.0003 value is relatively small, there is no larger value outside the
+selected vocabulary range in this plot. For instance, using the following code, we can
+confirm that 0.0003 is indeed the largest value:
+print("Highest probability:", max(next_token_probas.squeeze(0)))
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+112 chapter 4 Improving reasoning with inference-time scaling
+Figure 4.11 Token
+probabilities obtained
+by applying the
+softmax function to
+the rescaled logits.
+The token with the
+highest probability
+(corresponding to
+" Berlin", but with
+the label omitted for
+code simplicity) is
+selected as the next
+output.
+We can interpret this score as the model’s confidence. This means that the model is
+more confident in choosing " Berlin" (19,846) as the next token than any other token.
+The reason the value is so small is that we are using a high temperature, which makes
+it easier to plot this value next to the other token values. If we change the temperature
+from 5 to 0.5, the probability score increases from 0.0003 to 0.3398, and the probability
+scores of the other tokens become even closer to 0.
+The softmax function under the hood
+The softmax function converts a vector of raw scores (logits) into a probability distri-
+bution where each value lies between 0 and 1 and all values sum to 1. This conver-
+sion makes the values easier to interpret and to sample from later.
+If you are familiar with mathematical notation, the formula behind the softmax func-
+tion is
+softmax(z) = exp(z) / exp(z)
+Here, z is a vector of real-valued inputᵢs ᵢ Σⱼ ⱼ
+z = [z , z , …, z ],
+where ₁ ₂ ₙ
+¡ n is the number of elements in the vector.
+¡ i is the index of the current element (1 ≤ i ≤ n).
+¡ j is the index used to sum over all elements (1 ≤ j ≤ n).
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 113
+This produces a normalized probability for each element z, such that
+softmax(z) = 1 ᵢ
+In code, the softmax function can bΣeᵢ implemenᵢted in three lines:
+def softmax_with_temperature(logits, temperature):
+scaled_logits = logits / temperature
+return torch.softmax(scaled_logits, dim=0)
+In practice, I prefer to use the torch.softmax function because it has some addi-
+tional numerical stability improvements to handle very small and very large values
+more reliably.
+The purpose of converting the logits into these probability scores is that they are some-
+what more interpretable, and we can now sample from them using a torch.multinomial
+function. For instance, if we draw a sample from this probability distribution, we have a
+0.03% chance of getting " Berlin" with our temperature setting of 5.0 (and a 33.98%
+chance of getting " Berlin" with a temperature of 0.5).
+The sampling process, corresponding to step 3.4 in figure 4.10, can be implemented
+as follows:
+torch.manual_seed(123)
+print(
+"Sampled token:",
+torch.multinomial(next_token_probas.cpu(), num_samples=1)
+)
+This code returns token ID 65,094, which corresponds to the word " mistress". Note
+that the word doesn’t make sense in our context, "The capital of Germany is". In this
+case, it was selected randomly because of the high-temperature setting, which encour-
+ages sampling tokens other than " Berlin".
+The torch.multinomial function samples vocabulary indices in proportion to their
+probabilities. In other words, vocabulary indices with higher probabilities are more
+likely to be sampled. If we repeated the sampling a very large number of times, we would
+sample the vocabulary index corresponding to the token " Berlin" with a probability of
+0.03%, given a temperature of 5.
+Before we look at some additional examples, note that we specified a random seed
+to make the code in this chapter reproducible. The torch.multinomial() function may
+still yield different results on CUDA and MPS devices and may even crash when drawing
+larger numbers of samples (I observed this issue in PyTorch 2.9 on both CUDA and
+MPS devices), which is why we are running the sampling on the CPU via .cpu().
+Let’s now sample some more next-token candidates to get a more representative
+sample.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+114 chapter 4 Improving reasoning with inference-time scaling
+Listing 4.7 Sampling multiple next-token candidates
+Draw samples according to probabilities.
+def count_samples(probas, num_samples=1000, threshold=1, tokenizer=None):
+samples = torch.multinomial(
+probas.cpu(), num_samples=num_samples, replacement=True
+)
+counts = torch.bincount(samples.squeeze(0), minlength=1)
+for i, c in enumerate(counts): Print frequently sampled Count how
+if c > threshold: vocabulary indices (entries). often each index
+was selected.
+if tokenizer is None:
+print(f"Vocab index {i}: {c.item()}x")
+else:
+print(f"'{tokenizer.decode([i])}': {c.item()}x")
+This count_samples function in listing 4.7 samples token indices from a probability
+distribution and counts how often each token is drawn. It uses torch.multinomial
+to randomly select num_samples indices in proportion to their probabilities. The
+replacement=True setting allows us to draw the same token multiple times.
+Then, torch.bincount counts how often each index appears. It prints only tokens
+that occur more than a specified threshold so it doesn’t clutter the output with less fre-
+quently drawn tokens.
+Multinomial sampling
+Multinomial sampling is the procedure used to pick the next token, given a probability
+distribution over the vocabulary, such as the softmax probability scores. In multino-
+mial sampling, instead of always selecting the most likely token (known as greedy
+decoding), we draw one token at random, with tokens of higher probability being more
+likely to be selected. This randomness is important for generating diverse responses,
+which we’ll later use in self-consistency sampling.
+To illustrate this further, we can think of the probability scores as a set of weighted
+choices. For example, a token with probability 0.40 is four times as likely to appear as
+one with probability 0.10, but both remain possible outcomes.
+Suppose the model assigns the following probabilities:
+¡ “Berlin”: 0.70
+¡ “Munich”: 0.20
+¡ “Hamburg”: 0.10
+Greedy decoding would always return “Berlin.” Multinomial sampling instead draws
+one token according to these weights. Across a very large number of draws, “Berlin”
+will appear most often (70% of the time), “Munich” sometimes (20% of the time), and
+“Hamburg” only occasionally (10% of the time).
+This variability is what allows us to generate multiple candidate answers for self-
+consistency in later sections.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 115
+NOTE This count_samples function is meant for illustration only. In real text
+generation, we only draw one token at a time. This function takes a large num-
+ber of samples from the distribution to show how often each token is selected,
+making the underlying probabilities easier to visualize and understand.
+First, let’s run the count_samples function on the probability scores that we obtained
+by applying a temperature of 5:
+torch.manual_seed(123)
+count_samples(next_token_probas, tokenizer=tokenizer)
+The output is as follows:
+'}': 2x
+' </': 2x
+' represent': 2x
+' Inf': 2x
+'()*': 2x
+' beside': 2x
+' Kob': 2x
+'�': 2x
+As you can see, even though the default sample size is 1,000, none of the sampled
+tokens appear more than twice. Also, all of these are nonsense tokens in the context of
+the "The capital of Germany is" query. The reason for these nonsensical results is that
+we used a temperature value that is much too high.
+Let’s try a lower temperature value of 0.35, which sharpens the score distribution
+and makes it more likely to select a meaningful next token:
+torch.manual_seed(123)
+probas_lowT = torch.softmax(
+scale_logits_by_temperature(next_token_logits, 0.35), dim=-1
+)
+In this case, we see the following output:
+' __': 158x
+' Berlin': 435x
+' ____': 169x
+' ______': 209x
+' Munich': 3x
+' Hamburg': 3x
+' _____': 18x
+This output makes much more sense as a set of next-token candidates for our "The
+capital of Germany is" query. Out of the 1,000 samples, the " Berlin" token was drawn
+435 times. You can check via print(probas_lowT[0, 19_846]) that the probability of
+drawing this token is approximately 42% at the temperature value 0.35. To make it even
+more likely that " Berlin" will be sampled, we could further reduce the temperature.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+116 chapter 4 Improving reasoning with inference-time scaling
+Notice that some of the other, rarer candidates also make sense. For example, both
+" Munich" and " Hamburg" are big cities in Germany, so they are not completely unre-
+lated to the query. The underscore responses (" ____") are likely due to the model
+having seen text in the form of a quiz with a placeholder; e.g., "The capital of Germany
+is ____".
+You may wonder, if " Berlin" is the correct answer, what’s the point of making the
+model occasionally give the wrong answer by adding this temperature rescaling and
+multinomial sampling? For different kinds of queries, introducing randomness during
+sampling helps the model explore alternative responses instead of always choosing the
+single most likely token. This variability can be useful for creative or open-ended tasks,
+where there may be multiple valid completions.
+Specifically, in reasoning tasks, we can use this sampling diversity through techniques
+such as self-consistency (discussed in section 4.6), which generate multiple candidate
+answers and compare them to improve answer accuracy.
+4.4.4 Adding temperature scaling to the text generation function
+Before we introduce another improvement to the text generation process by adding
+a token-probability selection filter, let’s add the temperature-scaling modification to
+the text generation function so we can more readily generate new tokens with the
+model.
+Listing 4.8 Text generation with temperature scaling
+from reasoning_from_scratch.qwen3 import KVCache
+@torch.inference_mode()
+def generate_text_temp_stream_cache(
+model,
+token_ids,
+max_new_tokens,
+eos_token_id=None,
+temperature=0.
+):
+model.eval()
+cache = KVCache(n_layers=model.cfg["n_layers"])
+model.reset_kv_cache()
+Step 3.1: Get logits
+out = model(token_ids, cache=cache)[:, -1]
+for _ in range(max_new_tokens):
+########################################
+# NEW:
+orig_device = token_ids.device Step 3.2: Apply temperature
+scaling on logits
+if temperature is None or temperature == 0.0:
+next_token = torch.argmax(out, dim=-1, keepdim=True)
+else:
+logits = scale_logits_by_temperature(out, temperature)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Controlling output diversity with temperature scaling 117
+Step 3.3: Convert to
+probabilities
+probas = torch.softmax(logits, dim=-1)
+next_token = torch.multinomial(probas.cpu(), num_samples=1)
+next_token = next_token.to(orig_device)
+Step 3.4: Sample
+token according to
+#########################################
+probabilities
+if (eos_token_id is not None
+and torch.all(next_token == eos_token_id)):
+break
+yield next_token
+out = model(next_token, cache=cache)[:, -1]
+The generate_text_temp_stream_cache in listing 4.8 is similar to the generate_text_
+stream_cache from chapter 2. What’s new is that it now includes temperature rescaling
+and sampling (below the # New comment indicator in the code).
+The following code shows how temperature scaling and sampling are integrated into
+the token-generation loop itself. This function can be passed into the more flexible
+generate_text_stream_concat_flex wrapper introduced in listing 4.2, which keeps the
+outer prompt-handling code unchanged while letting us swap in different decoding
+strategies:
+torch.manual_seed(123)
+response = generate_text_stream_concat_flex(
+Use the new temperature
+model, tokenizer, prompt, device,
+scaling-based text
+max_new_tokens=2048, verbose=True,
+generation function.
+generate_func=generate_text_temp_stream_cache,
+temperature=1.1
+)
+The output is \boxed{$x = \frac{90}{7}$}. The correct answer is 83, so the model is
+still wrong, but this was meant as a demonstration to show that we can tweak the answer
+by using temperature scaling and sampling.
+Choosing temperature settings
+In practice, temperature selection depends on the goal. A temperature of 0.0 cor-
+responds to greedy decoding, where we always pick the highest-probability token.
+Small nonzero values such as 0.3–0.8 are often useful when we want a bit more
+diversity without making the output too erratic. Much higher values make the
+model explore more broadly, which can be useful for creative generation or broad
+search, but often hurts reliability on tasks where we want the single most likely
+answer.
+In the next section, we’ll improve the sampling process.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+118 chapter 4 Improving reasoning with inference-time scaling
+4.5 Balancing diversity and coherence with top-p sampling
+You’ve seen how temperature scaling and sampling (via torch.multinomial) can
+increase the diversity of the LLM responses, for better or for worse. Specifically, you saw
+that this approach may end up sampling tokens that are unrelated to the user query.
+We’ll now improve the sampling process by adding a top-p filter (figure 4.12) so that
+very low-confidence tokens are not sampled by accident. The top-p sampling process
+described in this section is also known as nucleus sampling.
+1 Load pretrained LLM
+Chain-of-thought
+2 3 Temperature scaling 6 Logprob scoring
+prompting
+1st inference-scaling
+method
+4 Top-p filtering 7 Self-refinement
+4.1 Sort in descending order
+5 Self-consistency sampling
+4.2 Compute cumulative sum 2nd inference-scaling
+method
+4.3 Apply top-p threshold
+In this section, we implement top-
+filtering, which selects a subset of the
+highest probability tokens for sampling.
+4.4 Renormalize
+Figure 4.12 Overview of the top-p filtering process. The filter keeps only the highest-probability tokens by sorting
+them, applying a cumulative cutoff, selecting the top-p subset, and renormalizing the result.
+Figure 4.12 summarizes the four steps that make up the top-p filter: sorting the token
+probabilities, computing their cumulative sum, selecting the subset that satisfies the
+top-p cutoff, and renormalizing the remaining probabilities so that they again form a
+valid distribution. The renormalization step is necessary, because once we remove all
+low-probability tokens, the remaining probabilities no longer sum to one. To sample
+correctly, we need to rescale the remaining values so that they represent a proper prob-
+ability distribution.
+We’ll now walk through steps 4.1 through 4.4 from figure 4.12 in detail.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Balancing diversity and coherence with top-p sampling 119
+4.5.1 Selecting a subset of top-p tokens
+Before we implement the top-p filter, let’s introduce a simple toy dataset that will make
+the temperature-scaling and -sampling process easier to illustrate. To start, let’s assume
+the model’s and tokenizer’s vocabularies have only 10 entries, rather than 151,936.
+Listing 4.9 Temperature scaling and sampling with toy data
+toy_logits = torch.tensor( Step 3.1: Get logits
+[-0.7, -3.0, 0.1, -1.2, 2.0, -1.0, -0.5, -2.0, 0.3, 1.5] (here: use toy logits
+) for 10 tokens)
+toy_logits_scaled = scale_logits_by_temperature(toy_logits, 1.0)
+toy_probas = torch.softmax(toy_logits_scaled, dim=-1)
+Step 3.2: Apply
+plt.bar( temperature scaling
+torch.arange(len(toy_probas)), toy_probas, (we’ll use 1.0 as a
+alpha=0.5 placeholder)
+) Plot probabilities
+in a bar plot
+Step 3.3: Convert to
+plt.ylim([0, 1]) probabilities
+plt.xlabel("Vocabulary index")
+plt.ylabel("Probability")
+plt.show()
+Note that the toy_logits variable holds example values for the next-token logit scores
+from the model(token_ids, cache=cache)[:, -1] call in listing 4.8, assuming that the
+vocabulary size is 10.
+The resulting bar plot in figure 4.13 shows the next-token logit scores after they are
+rescaled to probabilities.
+Figure 4.13 Example
+of token probabilities
+before top-p filtering. The
+distribution includes many
+low-probability tokens,
+which will later be truncated
+by applying a cumulative
+probability threshold.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+120 chapter 4 Improving reasoning with inference-time scaling
+So far, this is basically a recap of the previous section. Now we’ll add the first two top-p
+filtering steps (steps 4.1 and 4.2) illustrated in figure 4.12. This involves sorting the
+probability scores in descending order and computing the cumulative sum.
+Listing 4.10 Computing the cumulative probability sum
+sorted_probas, sorted_idx = torch.sort(toy_probas, descending=True)
+cumsum = torch.cumsum(sorted_probas, dim=-1)
+Step 4.1: Sort
+plt.bar( by descending
+probability
+torch.arange(len(sorted_probas)), sorted_probas,
+alpha=0.5
+Step 4.2: Compute
+)
+cumulative sum
+plt.step(
+torch.arange(len(cumsum)), cumsum,
+where="mid", color="C1", label="Cumulative sum"
+)
+plt.ylim([0, 1])
+plt.xlabel("Token rank (sorted by probability)")
+plt.ylabel("Probability")
+plt.show()
+The torch.cumsum function used in listing 4.10 computes the cumulative sum of ele-
+ments along a given dimension. In this example, it takes the sorted token probabilities
+and adds them up step by step, so that each position in the result represents the total
+probability accumulated up to that token.
+For instance, the first element equals the highest probability, the second equals the sum
+of the top two, and so on, until the final value reaches 1. This is best explained by looking
+at the cumulative step plot produced by the code in listing 4.10 and shown in figure 4.14.
+Figure 4.14 Visualization
+of sorted token probabilities
+and their cumulative sum.
+This step prepares for top-p
+filtering by showing how
+probabilities accumulate
+when ordered from highest
+to lowest, which helps
+determine where to set the
+cutoff threshold.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Balancing diversity and coherence with top-p sampling 121
+Now that we have the cumulative probability sum, we can implement the core top-p
+filtering step. The p in top-p stands for probability, and top-p can be translated as “keep
+the smallest set of tokens whose cumulative probability stays below or equal to p.” The
+following listing shows a simple implementation of top-p filtering.
+Listing 4.11 A simple-top-p filtering rule
+top_p = 0.8
+keep_mask = cumsum <= top_p
+n_kept = torch.sum(keep_mask).item()
+print("Cumulative sum:", cumsum)
+print("Tokens kept:", n_kept)
+In code, this is implemented as keep_mask = cumsum <= top_p, which marks all tokens
+whose cumulative probability mass does not yet exceed the threshold p (here defined
+as top_p=0.8). The number of retained tokens is then computed and assigned to the
+variable n_kept. The output follows:
+Cumulative sum: tensor([0.4538, 0.7290, 0.8119, 0.8798,
+0.9170, 0.9475, 0.9701, 0.9886, 0.9969, 1.0000])
+Tokens kept: 2
+Looking at the returned cumulative probabilities, the second entry (0.7290) is just
+below the top-p threshold of 0.8, and the third entry (0.8119) exceeds it, which is why
+only the first two tokens are kept.
+A more common variant of top-p filtering includes the token that exceeds the thresh-
+old, as shown in the next listing.
+Listing 4.12 A common top-p filtering variant
+keep_mask = (cumsum - sorted_probas) < top_p
+n_kept = keep_mask.sum().item()
+print("Tokens kept:", n_kept)
+This code returns 3 as the number of tokens kept. This follows the definition of top-p
+filtering: the smallest set of tokens is kept such that the cumulative probability mass is
+at least p.
+Let’s illustrate this top filtering with a plot.
+Listing 4.13 Visualizing top-p filtering
+plt.bar(
+torch.arange(len(sorted_probas)), sorted_probas,
+alpha=0.5, label="Sorted probabilities"
+)
+plt.step(
+torch.arange(len(cumsum)), cumsum, where="mid",
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+122 chapter 4 Improving reasoning with inference-time scaling
+color="darkorange", label="Cumulative sum"
+)
+plt.axhline( Highlight cutoff
+top_p, color="red", linestyle="--",
+label=f"top_p = {top_p}"
+)
+plt.axvline(
+n_kept - 0.5, color="gray", linestyle=":",
+label=f"Top-p cutoff at {n_kept} tokens"
+)
+plt.xlabel("Token rank (sorted by probability)")
+plt.ylabel("Probability")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.ylim(0, 1.05)
+plt.show()
+The plot produced by executing the code in listing 4.13 is shown in figure 4.15. This plot
+shows the top_p = 0.8 threshold value (the dashed horizontal line) that defines which
+tokens are kept. In this case, the cumulative sum of the first two tokens is below the thresh-
+old, so we exclude all other tokens to the right of the cutoff (the vertical dotted line).
+Figure 4.15 Top-p
+(nucleus) filtering.
+Tokens are sorted
+by probability, and
+the smallest subset
+whose cumulative
+probability exceeds
+the threshold
+(p = 0.8) is kept for
+sampling.
+To implement this threshold cutoff, we can use the following code, which first zeroes
+out all values to the right of the cutoff (the vertical dashed line in figure 4.15) and then
+restores the original sorting order.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Balancing diversity and coherence with top-p sampling 123
+Listing 4.14 Applying top-p filtering
+kept_sorted = torch.where(
+keep_mask, sorted_probas,
+torch.zeros_like(sorted_probas)
+)
+filtered = torch.zeros_like(toy_probas).scatter(0, sorted_idx, kept_sorted)
+print(filtered)
+The resulting tensor follows:
+tensor([0.0000, 0.0000, 0.0000, 0.0000, 0.4538, 0.0000, 0.0000, 0.0000,
+0.0829, 0.2752])
+You can see that all values except the ones at index positions 4, 8, and 9 are zeroed out.
+This means that if we now use the multinomial function, only those three tokens will
+be considered.
+Finally, we renormalize these values so that they sum to one again:
+denom = torch.sum(filtered).clamp_min(1e-12)
+renormalized = filtered / denom
+print(renormalized)
+The resulting normalized tensor is as follows:
+tensor([0.0000, 0.0000, 0.0000, 0.0000, 0.5589, 0.0000, 0.0000, 0.0000,
+0.1021, 0.3390])
+The goal of this top-p filtering is to remove tokens with low probabilities so they aren’t
+sampled later. This helps reduce nonsensical token responses in a given context.
+4.5.2 Adding a top-p filter to the text generation function
+We’ve walked through the top-p filtering steps using a toy example. Now let’s add the
+four top-p filtering steps (steps 4.1–4.4 in figure 4.16) to our existing text generation
+function between the probability conversion and the sampling.
+We’ll first assemble the top-p filtering steps from the previous section into a single,
+convenient function we can call.
+Listing 4.15 Top-p filtering function
+def top_p_filter(probas, top_p):
+if top_p is None or top_p >= 1.0: Step 4.1: Sort by
+return probas descending probability
+sorted_probas, sorted_idx = torch.sort(probas, dim=1, descending=True)
+cumprobas = torch.cumsum(sorted_probas, dim=1)
+Step 4.2: Cumulative sum
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+124 chapter 4 Improving reasoning with inference-time scaling
+prefix = cumprobas - sorted_probas Step 4.3.1: Keep tokens where prefix cumulative
+keep = prefix < top_p mass (before each token) is &lt; top_p
+keep[:, 0] = True
+kept_sorted = torch.where(
+Step 4.3.2: Zero out
+keep, sorted_probas, beyond cutoff
+torch.zeros_like(sorted_probas) Step 4.3.3: Map back
+) to original order
+filtered = torch.zeros_like(probas).scatter(1, sorted_idx, kept_sorted)
+denom = torch.sum(filtered, dim=1, keepdim=True).clamp_min(1e-12)
+return filtered / denom
+Step 4.4: Renormalize to sum to 1
+For top_p <= 0, only the highest-probability
+token is guaranteed to be kept as a fallback.
+1 Load pretrained LLM
+Chain-of-thought
+2 3 Temperature scaling
+prompting
+1st inference-scaling
+method
+4 Top-p filtering
+4.1 Sort in descending order 3.1 Get next-token scores
+5 Self-consistency sampling
+4.2 Compute cumulative sum 2nd inference-scaling 3.2 Rescale next-token scores
+method
+4.3 Apply top-p threshold 3.3 Convert next-token scores
+into a probability distribution
+4.4 Renormalize 3.4 Sample the next token
+We combine top-p filtering with
+temperature scaling; top-p filtering
+is inserted between steps 3.3 and 3.4.
+Figure 4.16 Integrating top-p filtering with temperature scaling. After rescaling the next-token scores, top-p
+filtering is applied between steps 3.3 and 3.4 to limit sampling to the most probable tokens.
+The top_p_filter function in listing 4.15 first sorts token probabilities and com-
+putes their cumulative sum. It then keeps tokens whose prefix cumulative mass (the
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Balancing diversity and coherence with top-p sampling 125
+cumulative probability before each token) is below the top_p threshold, which includes
+the token that first crosses the threshold. It zeroes out the rest, maps the kept values
+back to their original order, and renormalizes the remaining probabilities so they sum
+to 1 again.
+Before we add this top_p_filter function to our text generation functions, let’s give
+it a try and see how it works with the previous temperature-scaling approach. First, we
+get the logits:
+with torch.inference_mode():
+next_token_logits = model(input_token_ids)[:, -1]
+print(next_token_logits.shape)
+The preceding code prints the dimensions [1, 151936] for the next_token_logits
+tensor. We are now working with the real data and full vocabulary, which has 151,936
+entries.
+Next, we rescale the logits into probability scores and apply temperature scaling with
+a temperature of 0.35, as before:
+torch.manual_seed(123)
+probas_lowT = torch.softmax(
+scale_logits_by_temperature(next_token_logits, 0.35), dim=-1
+)
+count_samples(probas_lowT, threshold=1, tokenizer=tokenizer)
+This code is similar to what we used in the previous temperature-scaling examples, and
+it prints the following sampled outputs:
+' __': 158x
+' Berlin': 435x
+' ____': 169x
+' ______': 209x
+' Munich': 3x
+' Hamburg': 3x
+' _____': 18x
+Now, let’s add the top-p filter and see how it changes the results:
+torch.manual_seed(123)
+probas_lowT = torch.softmax(
+scale_logits_by_temperature(next_token_logits, 0.35), dim=-1
+)
+probas_lowT_filtered = top_p_filter(probas_lowT, top_p=0.8)
+count_samples(probas_lowT_filtered, threshold=1, tokenizer=tokenizer)
+With a top_p threshold of 0.8, which is a typical value, we exclude the lowest-probability
+tokens whose cumulative probability makes up the remaining 20%. The sampled out-
+puts are now as follows:
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+126 chapter 4 Improving reasoning with inference-time scaling
+' Berlin': 534x
+' ____': 217x
+' ______': 249x
+As you can see, we now either select the correct city (removing " Munich" and
+" Hamburg" as sampled options) or we print the underscore token, which the model
+might use to format the text as a quiz question, with ' ______' as a placeholder.
+Now let’s return to our math query and add the top-p filter to the generate_text_
+temp_stream_cache function we coded in listing 4.8. The updated function, now called
+generate_text_top_p_stream_cache, is shown next.
+Listing 4.16 Text generation with top-p filtering
+@torch.inference_mode()
+def generate_text_top_p_stream_cache(
+model,
+token_ids,
+max_new_tokens,
+eos_token_id=None,
+temperature=0.,
+top_p=None
+):
+model.eval()
+cache = KVCache(n_layers=model.cfg["n_layers"])
+model.reset_kv_cache()
+Step 3.1: Get logits
+out = model(token_ids, cache=cache)[:, -1]
+for _ in range(max_new_tokens):
+orig_device = token_ids.device
+Step 3.2: Apply temperature
+scaling on logits
+if temperature is None or temperature == 0.0:
+next_token = torch.argmax(out, dim=-1, keepdim=True)
+else:
+logits = scale_logits_by_temperature(out, temperature)
+probas = torch.softmax(logits, dim=-1)
+Step 3.3: Convert
+to probabilities
+probas = top_p_filter(probas, top_p)
+next_token = torch.multinomial(probas.cpu(), num_samples=1)
+next_token = next_token.to(orig_device)
+Step 3.4: Sample
+if (eos_token_id is not None token according
+and torch.all(next_token == eos_token_id)): to probabilities
+break
+yield next_token
+out = model(next_token, cache=cache)[:, -1]
+(New) Step 4: Apply top-p
+filter to probabilities
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Improving response accuracy with self-consistency 127
+Let’s plug this new text generation function into generate_text_stream_concat_flex,
+as we did before with the temperature-scaling version of the text generation function:
+torch.manual_seed(123)
+response = generate_text_stream_concat_flex(
+model, tokenizer, prompt, device,
+max_new_tokens=2048, verbose=True,
+generate_func=generate_text_top_p_stream_cache,
+temperature=0.5,
+top_p=0.8,
+)
+The output is " \boxed{18}", which is still incorrect. Everything we have done so far is
+to let us sample different outputs. In the next section, we’ll use generate_text_stream_
+concat_flex with our augmented text generation function (generate_text_top_p_
+stream_cache) to sample different outputs when implementing the self-consistency
+inference-time-scaling technique.
+Top-k filtering
+Top-k filtering is another way to limit the set of candidate next tokens during sampling.
+Instead of keeping all tokens whose cumulative probability stays below a threshold
+(as in top-p), top-k keeps only the k most likely tokens based on the model’s logits.
+After sorting the vocabulary by probability, everything past the first k entries is
+removed. The remaining k tokens are then renormalized and sampled from.
+In short, top-k keeps a fixed number of the most likely tokens, whereas top-p keeps a
+variable number of tokens depending on their cumulative mass.
+Top-k is simpler to implement, and I covered it in my Build a Large Language Model
+(From Scratch) book. Top-p sampling has become more popular recently.
+Exercise 4.2: Using temperature scaling and top-p filtering on MATH-500
+Modify the evaluate_math500_stream function from listing 3.15 to see whether add-
+ing temperature scaling and top-p sampling will change the MATH-500 accuracy of the
+base model. You can use a setting of 0.9 for both temperature scaling and top-p.
+4.6 Improving response accuracy with self-consistency
+Now that we’ve coded the temperature scaling and top-p filtering, we are ready to imple-
+ment our second inference-time-scaling technique in this chapter: self-c onsistency
+sampling.
+The idea behind self-consistency sampling was introduced in the Google Research
+paper “Self-Consistency Improves Chain-of-Thought Reasoning in Language Models”
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+128 chapter 4 Improving reasoning with inference-time scaling
+(https://arxiv.org/abs/2203.1117). Despite the fancy name, self-consistency sampling
+is essentially a form of majority voting: we use temperature scaling and top-p filtering to
+generate multiple answers, and then we select the most frequent one, as shown in figure
+4.17.
+1 Load pretrained LLM
+Chain-of-thought
+2 3 Temperature scaling 6 Logprob scoring
+prompting
+1st inference-scaling
+method
+4 Top-p filtering 7 Self-refinement
+Sample multiple
+5 Self-consistency sampling
+answers from
+2nd inference-scaling the LLM.
+method
+LLM responses
+User prompt
+Half the value of 3x-9 is
+x+37. What is the value of x? 18 83 54 83 22
+Most frequent answer: 83
+Figure 4.17 The self-consistency sampling method generates multiple responses from the LLM and selects the
+most frequent answer, improving answer accuracy through majority voting.
+The self-consistency sampling technique shown in figure 4.17 counts as an inference-
+time-scaling technique because we don’t update the model itself, and we expend more
+compute resources to improve response accuracy.
+To build our voting-based inference-time pipeline, we’ll reuse the generation code
+from chapter 2, the answer extraction logic from chapter 3, and the sampling controls
+from this chapter. Thanks to the generate_text_stream_concat_flex function, the
+self-consistency code implementation is relatively straightforward. The main proce-
+dure can be summarized in three steps, as illustrated in figure 4.18.
+To implement the three steps illustrated in figure 4.18, we simply call generate_
+text_stream_concat_flex repeatedly to generate multiple answers and reuse the
+extract_final_candidate function from chapter 3. The only new code is to implement
+the majority voting based on answer frequency.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Improving response accuracy with self-consistency 129
+Step 1: Sample multiple answers with
+Input
+temperature greater than 0 and top-
+Half the value of 3x-9 is LLM
+x+37. What is the value of x?
+... ...
+Step 6: Simplify: Finally, we add 9 to both sides
+of the equation to solve for
+\[ $x$:
+x = 83 \boxed{26}
+\] $$x = 83$$
+Therefore, the value of x is Therefore,, the value of $x$ is $
+\boxed{83}. \\bbooxxeedd{{8833}}$$..
+Output 1 Output 2 Output 5
+Step 2: Extract the final boxed
+83 83 answer from each output 5
+Step 3: Choose the most frequent final answer
+83
+Figure 4.18 The three main steps for implementing self-consistency sampling. First, we generate multiple
+answers for the same prompt using a temperature greater than zero and top-p filtering. Second, we extract the final
+boxed answer from each generated solution. Third, we select the most frequently extracted answer as the final
+prediction.
+Listing 4.17 Text generation with top-p filtering
+from reasoning_from_scratch.ch03 import extract_final_candidate
+from collections import Counter
+def self_consistency_vote(
+model, tokenizer, prompt, device,
+num_samples=10, temperature=0.8, top_p=0.9, max_new_tokens=2048,
+show_progress=True, show_long_answer=False, seed=None,
+):
+full_answers, short_answers = [], []
+for i in range(num_samples): 1) Sample multiple answers
+if seed is not None:
+torch.manual_seed(seed + i + 1)
+answer = generate_text_stream_concat_flex(
+model=model, tokenizer=tokenizer, prompt=prompt, device=device,
+max_new_tokens=max_new_tokens, verbose=show_long_answer,
+generate_func=generate_text_top_p_stream_cache,
+temperature=temperature, top_p=top_p,
+)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+130 chapter 4 Improving reasoning with inference-time scaling
+short = extract_final_candidate(
+2) Extract the final (short)
+answer, fallback="number_then_full"
+answer from each answer
+)
+full_answers.append(answer)
+short_answers.append(short)
+if show_progress:
+print(f"[Sample {i+1}/{num_samples}] → {short!r}")
+counts = Counter(short_answers)
+groups = {s: [] for s in counts}
+for idx, s in enumerate(short_answers):
+groups[s].append(idx)
+3) Choose the most frequent final
+answer (self-consistency vote)
+mc = counts.most_common()
+if not mc:
+majority_winners, final_answer = [], None
+else:
+top_freq = mc[0][1]
+majority_winners = [s for s, f in mc if f == top_freq]
+final_answer = mc[0][0] if len(majority_winners) == 1 else None
+return {
+"full_answers": full_answers,
+"short_answers": short_answers,
+"counts": dict(counts),
+"groups": groups,
+"majority_winners": majority_winners,
+"final_answer": final_answer,
+}
+In short, the self-consistency method in listing 4.17 does the following:
+1 Samples multiple answers with temperature greater than 0 and top-p
+2 Extracts the final boxed answer from each response
+3 Chooses the most frequent final answer
+Note that in our implementation, we use a for loop to generate these answers sequen-
+tially. In practice, it’s also common to generate the answers on different devices so the
+sampling can be parallelized.
+Furthermore, in the preceding code, we set the random seed for each round
+individually:
+if seed is not None:
+torch.manual_seed(seed + i + 1)
+Technically, this is not necessary; setting the random seed once should be sufficient to
+generate diverse samples. This explicit seeding is useful if we want to rerun some of the
+rounds individually.
+Let’s try this function and see what we get:
+results = self_consistency_vote(
+model,
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Improving response accuracy with self-consistency 131
+tokenizer,
+prompt,
+device=device,
+num_samples=5,
+temperature=0.8,
+top_p=0.9,
+max_new_tokens=2048,
+seed=123,
+show_progress=True,
+)
+The printed results are as follows:
+[Sample 1/5] → '83'
+[Sample 2/5] → '22'
+[Sample 3/5] → '54'
+[Sample 4/5] → '83'
+[Sample 5/5] → '61'
+Since 83 is the most frequent answer, the final answer is 83 (we can access this number
+programmatically via results["final_answer"]). If you want to read the explanation
+and full answer, you can access one of the correct solutions returning 83; for example,
+print(results["full_answers"][0]) prints the following:
+To find the value of x, let's solve the equation step by step.
+1. **Given Equation:**
+\[
+\frac{1}{2} \times (3x - 9) = x + 37
+\]
+# ...
+**Final Answer:**
+\[
+\boxed{83}
+\]
+With this self-consistency approach, we were finally able to generate the correct answer.
+(Note that the results may vary when running the code on an "mps" or "cuda" device.)
+The self_consistency_vote function does not currently handle ties, so if multiple
+samples have the same frequency, it returns None as the final answer. In the next chapter,
+we’ll implement a scoring method to calculate the confidence of a given answer, which
+can be used as a tiebreaker.
+Exercise 4.3: Using self-consistency sampling on MATH-500
+Modify the evaluate_math500_stream function from listing 3.15 to evaluate whether
+self-consistency sampling improves the MATH-500 accuracy of the base model. Use a
+sample size of 3 and set both temperature and top-p to 0.9.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+132 chapter 4 Improving reasoning with inference-time scaling
+(continued)
+As part of this exercise, implement tiebreaking so that ties are resolved by the first
+answer appearing in the sample list. For example, if the sample answers are 13, 15,
+13, 15, 16, the selected answer should be 13.
+Note that you don’t have to modify self_consistency_vote itself to implement this
+tiebreaking rule; you can work with the results dictionary returned by the function
+instead.
+Exercise 4.4: Early stopping in self-consistency sampling
+To improve computational efficiency, implement an early-stopping version of self-
+consistency that ends the sampling once more than half of the answers agree.
+Choosing temperature and top-p settings
+We’ve already discussed temperature, but the practical question is how much ran-
+domness we should introduce for self-consistency sampling. Our goal is not to make
+the model as random as possible, but to generate answers that are diverse enough
+for majority voting to help, while still keeping most samples sensible. In practice, tem-
+perature values around 0.5 to 0.9 and top-p values around 0.7 to 0.9 are reasonable
+starting points.
+As a rule of thumb, if all long answers look nearly identical, it’s a good idea to gently
+increase the temperature or the top-p value to encourage more diversity. If the long
+answers start to look off or nonsensical, the settings are likely too aggressive and
+should be reduced, usually by lowering the temperature first. Here, a “long” answer
+refers to the full answer before extracting the final boxed result. You can inspect the
+long answers in the results dictionary returned by the self_consistency_vote func-
+tion or run the function with the show_long_answer=True setting.
+You may recall that the paper describing this technique was titled “Self-Consistency
+Improves Chain-of-Thought Reasoning in Language Models.” How does the “chain-
+of-thought reasoning” aspect factor into this? Chain-of-thought reasoning here simply
+refers to the chain-of-thought prompting we introduced earlier in this chapter, when
+we modified the prompt via "\n\n Explain step by step." so that the LLM generates
+longer responses.
+Let’s combine chain-of-thought prompting with self-consistency sampling:
+results = self_consistency_vote(
+model,
+tokenizer,
+prompt + "\n\nExplain step by step.",
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Improving response accuracy with self-consistency 133
+device=device,
+num_samples=5,
+temperature=0.8,
+top_p=0.9,
+max_new_tokens=2048,
+seed=123,
+show_progress=True,
+)
+In this case, all five answers are 83 (correct), likely because the question is relatively
+simple for the LLM when using chains of thought. It would be more interesting to see
+how well the model performs on the entire MATH-500 dataset. The results from vari-
+ous experiments are shown in table 4.1.
+Table 4.1 MATH-500 task accuracy for different methods
+Method Model Accuracy Time
+1 Baseline (chapter 3), greedy decoding Base 15.2% 10.1 min
+2 Baseline (chapter 3), greedy decoding Reasoning 48.2% 182.1 min
+3 Chain-of-thought prompting (CoT) Base 40.6% 84.5 min
+4 Temperature and top-p (Top-p) Base 17.8% 30.7 min
+5 Top-p + self-consistency (n=3) Base 29.6% 97.6 min
+6 Top-p + self-consistency (n=5) Base 27.8% 116.8 min
+7 Top-p + self-consistency (n=10) Base 31.6% 300.4 min
+8 Top-p + CoT Base 33.4% 129.2 min
+9 Self-consistency (n=3) + Top-p + CoT Base 42.2% 211.6 min
+10 Self-consistency (n=5) + Top-p + CoT Base 48.0% 452.9 min
+11 Self-consistency (n=10) + Top-p + CoT Base 52.0% 862.6 min
+12 Self-consistency (n=3) + Top-p + CoT Reasoning 55.2% 544.4 min
+For brevity, methods labeled “Top-p” in table 4.1 use both temperature scaling and
+top-p sampling. The accuracy values shown in the table were computed on all 500 sam-
+ples in the MATH-500 test set using a "cuda" GPU (DGX Spark).
+Let’s go through the results one by one. The n = 3 abbreviation means that we used a
+sample size of 3 for self-consistency sampling. Rows 1 and 2 show the results of the base
+and reasoning variants using the code from chapter 3; that is, we used the text genera-
+tion function without temperature scaling or top-p filtering. This text generation func-
+tion simply selects the token with the highest score at each step (greedy decoding). We
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+134 chapter 4 Improving reasoning with inference-time scaling
+can see that the reasoning variant has approximately three times the accuracy but also a
+substantially longer running time, since it generates more tokens.
+In row 3, we see the results for the chain-of-thought prompting approach using the
+"\n\nExplain step by step." prompt modification. As you can see, this boosts the base
+model’s accuracy from approximately 15% to 40%.
+Row 4 shows what happens when we add temperature scaling and top-p sampling to
+the base model. (All experiments involving temperature scaling and top-p sampling
+in table 4.1 used a setting of 0.9 for both.) The accuracy over the base model in row 1
+improves only moderately, from 15.2% to 17.8%. This is expected because tempera-
+ture scaling and top-p sampling merely help us control sampling diversity but are not
+inference-time-scaling techniques themselves. We can also see that the running time
+increased from 10.1 min to 30.7 min. This is not due to sampling code overhead, but
+rather because the model now generates longer responses in some cases.
+Rows 5–7 show the self-consistency scaling results. Increasing the number of samples
+from 3 to 10 further improves accuracy to 31.6%, but it also significantly increases the
+running time. In this case, there is almost no accuracy advantage to using 10 instead of
+3 samples.
+Row 8 shows temperature scaling and top-p sampling combined with chain-of-
+thought prompting. In this case, sampling makes the chain-of-thought results worse
+(33.4% compared to 40.6% in row 3). Combining chain-of-thought prompting with
+self-consistency improves accuracy to 52% with a sample size of 10, but it also substan-
+tially increases the running time to a staggering 862.6 minutes.
+In practice, if you have access to multiple GPUs, the different samples in self-
+consistency sampling can be computed in parallel rather than sequentially. This would
+still use the same amount of compute, but it could be spread across GPUs to generate
+the results faster.
+Lastly, in row 12, we can see that the reasoning variant also benefits from self-
+consistency sampling, increasing its accuracy from 48.2% in row 2 to 55.2%. Again, this
+comes with increased running time.
+The takeaway is that the results in table 4.1 highlight the tradeoff in inference-time
+scaling: better accuracy for more compute.
+One major downside of the self-consistency sampling approach in this chapter is that
+it relies on a final boxed answer that we can extract for majority voting. This method is
+trickier to apply to problems that don’t have numeric or short final answers.
+In the next chapter, as illustrated in figure 4.19, we will implement a different and
+more versatile inference-time-scaling method called self-refinement, in which the model
+iteratively improves its own answers.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Summary 135
+Stage 2: Measuring Stage 4: Reasoning
+performance with training
+(chapter 3) Stage 3: Reasoning (chapters 6 to 8)
+Stage 1: LLM basics without training
+(chapter 2) 2 Evaluation (chapters 4 and 5) 4 Training
+techniques
+1 Conventional 3 Inference
+LLM techniques
+Benchmark-based Reinforcement
+evaluation learning
+Loading pretrained Advanced text
+weights generation and voting
+Judgment-based
+Distillation
+evaluation
+Text generation Self-refinement
+In this chapter, we extended the text The next chapter introduces an
+generation function and implemented inference-time-scaling technique
+a voting-based technique to improve where the model iteratively
+answer accuracy. improves its own answers.
+Figure 4.19 Summary of this chapter’s focus on inference-time techniques. Here, the text generation function was
+extended with a voting-based method to improve answer accuracy. The next chapter introduces self-refinement, in
+which the model iteratively improves its responses.
+Summary
+¡ Reasoning abilities and answer accuracy can be improved without retraining the
+model by increasing compute at inference time (inference-time scaling).
+¡ A flexible text generation wrapper (generate_text_stream_concat_flex) allows
+different sampling strategies to be plugged in without changing the surrounding
+code.
+¡ Next tokens are produced from logits via softmax.
+¡ Temperature scaling changes logits to control the diversity of the generated text.
+¡ Top-p (nucleus) sampling filters out low-probability tokens to reduce the chance
+of generating nonsensical answers.
+¡ Chain-of-thought prompting (such as “Explain step by step.”) often yields more
+accurate answers by encouraging the model to write out its intermediate reasoning,
+though it increases the number of generated tokens and, in turn, the runtime cost.
+¡ Self-consistency sampling generates multiple answers, extracts the final boxed
+result from each, and selects the most frequent answer via majority vote to
+improve answer accuracy.
+¡ Experiments on the MATH-500 dataset show that combining chain-of-thought
+prompting with self-consistency can substantially boost accuracy compared to
+the baseline without sampling, at the cost of much longer running times.
+¡ The central tradeoff of inference-time scaling is higher accuracy in exchange for
+more compute.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+5
+Inference-time scaling
+via self-refinement
+This chapter covers
+¡ Scoring LLM answers with a simple rule-based
+scorer
+¡ Computing an LLM’s confidence in its answers
+¡ Coding a self-refinement loop where the LLM
+iteratively improves its answers
+The previous chapter introduced the concept of inference-time scaling (inference scaling
+for short), which improves the accuracy of model responses without further train-
+ing. In particular, it focused on self-consistency, where the model generates multiple
+answers, and the final answer is the most frequent one.
+As outlined in figure 5.1, this chapter will move beyond self-consistency for
+inference scaling and cover another popular and useful inference-scaling tech-
+nique, self-refinement. Instead of generating and choosing from multiple answers,
+self- refinement focuses on iteratively refining a single answer to correct potential
+mistakes.
+136
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Scoring and iteratively improving model responses 137
+This chapter covers techniques to improve
+reasoning without model training.
+Stage 2: Measuring Stage 4: Reasoning
+performance with training
+(chapter 3) Stage 3: Reasoning (chapters 6 to 8)
+Stage 1: LLM basics without training
+(chapter 2) 2 Evaluation (chapters 4 and 5) 4 Training
+techniques
+1 Conventional 3 Inference
+LLM techniques
+Benchmark-based Reinforcement
+evaluation learning
+Loading pretrained Advanced text
+weights generation and voting
+Judgment-based
+Distillation
+evaluation
+Text generation Self-refinement
+The previous chapter focused on This chapter introduces an
+extending the text generation function inference-time-scaling technique
+and implementing a voting-based where the model iteratively
+technique to improve answer accuracy. improves its own answers.
+Figure 5.1 A model of the topics covered in this book. This chapter continues with stage 3 and focuses on
+inference-time techniques for improving reasoning without additional training. It introduces self-refinement, where
+the model iteratively critiques and improves its own answers.
+5.1 Scoring and iteratively improving model responses
+As you’ve seen, inference scaling trades additional compute for better accuracy.
+We’ve covered two inference-scaling techniques so far: chain-of-thought prompting and
+self-consistency.
+Chain-of-thought prompting, the first method illustrated in figure 5.2, modifies the
+prompt, such as by adding the phrase "Explain step by step.", which can trigger a
+base model to write longer explanations that can in turn improve answer accuracy. This
+method is particularly useful for base models that don’t naturally provide reasoning-
+like explanations. Models trained as reasoning models usually don’t benefit from this
+type of inference scaling because they already explain their answers.
+Self-consistency, the second method in figure 5.2, lets the model produce several
+answers in parallel. We then choose the final answer by selecting the most frequent of
+these candidates.
+Even though self-consistency is quite simple, it often yields large gains in answer
+accuracy, which is why it has become a common choice in LLM applications where accu-
+racy is a higher priority than latency. Recent examples include DeepSeekMath-V2 and
+Google’s Gemini 3 Deep Think mode (see appendix A for references). One downside
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+138 chapter 5 Inference-time scaling via self-refinement
