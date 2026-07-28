@@ -1,0 +1,1531 @@
+dataset (MATH-500).
+8 Evaluate the model
+Figure 3.3 A step-by-step workflow for building and applying a math verifier. Starting with a pretrained LLM,
+we’ll generate answers, extract and normalize them, and then compare them with the ground-truth solutions. The
+verified answers are then graded, and the process is repeated across a dataset (MATH-500) to evaluate overall
+model performance.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Loading a pretrained model to generate text 61
+The next section will go through steps 1 and 2 in figure 3.3: loading a pretrained LLM
+and setting it up to generate answers.
+3.2 Loading a pretrained model to generate text
+In this section, we begin implementing the verifier by loading the pretrained LLM
+introduced in the previous chapter and configuring it to generate answers. This will
+lay the foundation for the later steps in figure 3.3, where we’ll extract, normalize, and
+verify those answers. It will also set up a reusable model-loading path for later chapters,
+where we’ll compare different reasoning methods and need a consistent way to mea-
+sure whether they actually improve the model.
+We will use the same pretrained base model that we used in chapter 2. For conve-
+nience and reuse in future chapters, we’ll wrap the model-loading logic in a load_
+model_and_tokenizer function call, as shown in the following listing.
+Listing 3.1 Loading a pretrained model
+from pathlib import Path
+import torch
+from reasoning_from_scratch.ch02 import (
+get_device
+)
+from reasoning_from_scratch.qwen3 import (
+download_qwen3_small,
+Qwen3Tokenizer,
+Qwen3Model,
+QWEN_CONFIG_06_B
+)
+def load_model_and_tokenizer(
+which_model, device, use_compile, local_dir="qwen3"
+):
+if which_model == "base":
+download_qwen3_small(
+kind="base", tokenizer_only=False, out_dir=local_dir
+)
+tokenizer_path = Path(local_dir) / "tokenizer-base.json"
+model_path = Path(local_dir) / "qwen3-0.6B-base.pth"
+tokenizer = Qwen3Tokenizer(tokenizer_file_path=tokenizer_path)
+elif which_model == "reasoning":
+download_qwen3_small(
+kind="reasoning", tokenizer_only=False, out_dir=local_dir
+)
+tokenizer_path = Path(local_dir) / "tokenizer-reasoning.json"
+model_path = Path(local_dir) / "qwen3-0.6B-reasoning.pth"
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+62 chapter 3 Evaluating reasoning models
+tokenizer = Qwen3Tokenizer(
+tokenizer_file_path=tokenizer_path,
+apply_chat_template=True,
+add_generation_prompt=True,
+add_thinking=True,
+)
+else:
+raise ValueError(f"Invalid choice: which_model={which_model}")
+model = Qwen3Model(QWEN_CONFIG_06_B)
+model.load_state_dict(torch.load(model_path))
+model.to(device) Optionally set to true to
+enable model compilation.
+if use_compile:
+torch._dynamo.config.allow_unspec_int_on_nn_module = True
+model = torch.compile(model)
+return model, tokenizer
+Uses the base model, similar
+to chapter 2, by default
+WHICH_MODEL = "base"
+device = get_device()
+# device = torch.device("cpu") Uncomment this line if you have
+compatibility issues with your device.
+model, tokenizer = load_model_and_tokenizer(
+which_model=WHICH_MODEL,
+device=device,
+use_compile=False
+)
+By default, listing 3.1 loads the base model, just as in chapter 2.
+An optional variant is the official Qwen3 reasoning model, which the Qwen3 team
+trained on top of the base model using reasoning-specific methods. This is not the cus-
+tom reasoning model that we’ll build later in the book. Instead, we’ll use it here as a
+reference point. You can load it by setting WHICH_MODEL = "reasoning" in listing 3.1, so
+that you can later compare its evaluation results with those of the base model.
+Now that we have loaded the model, we can use the text generation function from
+chapter 2 to generate text, as shown in the following listing.
+Listing 3.2 Generating model outputs
+from reasoning_from_scratch.ch02 import (
+generate_text_basic_stream_cache
+)
+Define the math problem
+as a string prompt.
+prompt = (
+r"If $a+b=3$ and $ab=\tfrac{13}{6}$, "
+r"what is the value of $a^2+b^2$?"
+)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Loading a pretrained model to generate text 63
+input_token_ids_tensor = torch.tensor( Convert the prompt into token
+tokenizer.encode(prompt), IDs that the model can process.
+device=device
+).unsqueeze(0) Adds batch dimension
+all_token_ids = []
+for token in generate_text_basic_stream_cache( Generate output tokens from
+model=model, the model, one at a time.
+token_ids=input_token_ids_tensor,
+max_new_tokens=2048,
+eos_token_id=tokenizer.eos_token_id
+):
+Removes batch dimension
+token_id = token.squeeze(0)
+decoded_id = tokenizer.decode(token_id.tolist())
+print(
+Prints token as it is generated
+decoded_id,
+end="",
+flush=True
+)
+all_token_ids.append(token_id)
+Decode the full generated
+sequence into text.
+all_tokens = tokenizer.decode(all_token_ids)
+In this listing, we start by encoding a simple math problem into token IDs that the
+model can process. The model then generates tokens one by one in a streaming fash-
+ion. We print them immediately as they appear so we can read the output while it’s
+being generated. At the same time, we collect the generated tokens into a list so that
+we can later decode them into the final answer string. This pattern of both streaming
+and collecting tokens is handy because it lets us monitor the generation live while still
+storing the full answer text (in all_tokens) so we can process it later.
+The response generated by the code in listing 3.2 is as follows:
+To find the value of \( a^2 + b^2 \) given that \( a + b = 3 \)
+and \( ab = \frac{13}{6} \), we can use the following algebraic identity:
+\[
+a^2 + b^2 = (a + b)^2 - 2ab
+\]
+**Step 1:** Substitute the given values into the equation.
+\[
+a^2 + b^2 = (3)^2 - 2 \left( \frac{13}{6} \right)
+\]
+Shortened for brevity
+[...]
+**Final Answer:**
+\[
+\boxed{\dfrac{14}{3}}
+\]
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+64 chapter 3 Evaluating reasoning models
+As you can see from this response, even though we’re using a base model, it provides a
+reasoning-m odel-like explanation. This is likely because the Qwen3 team included chain-
+of-thought data during pretraining, as stated in their technical report. But even though
+the model shows some reasoning-model-like behavior, adding additional reasoning
+methods can further improve these capabilities. (Note that the generated response may
+differ depending on whether you executed the code on a CPU, CUDA, or MPS device.)
+If you’re unfamiliar with the LaTeX syntax commonly used for mathematics, the pre-
+ceding response may be hard to decipher. In that case, you can use IPython’s Latex class
+to render it:
+from IPython.display import Latex, display
+display(Latex(all_tokens))
+The result of running the preceding code in a code notebook is shown in figure 3.4.
+“**” symbols, used for bold font in Markdown syntax, are
+not part of the LaTeX syntax and are thus not rendered.
+**Step 1:** Substitute the given values into the equation.
+13
+2 2=(3)2−2( )
+6
+**Step2:**Calculate(3)2.
+(3)2=9
+**Step3:**Calculate2 × 13. LaTeX code is
+6
+properly rendered.
+13 26 13
+2× = =
+6 6 3
+**Step 4:** Subtract the second result from the first.
+13
+2 2=9−
+3
+**Step 5:** Convert 9 to a fraction with a denominator of 3 to perform the subtraction.
+27
+9=
+3
+27 13 14
+2 2= − =
+3 3 3
+**FinalAnswer:**
+14 The final answer is given
+3 in an answer box.
+Figure 3.4 Rendered response with step-by-step calculations and the final boxed answer
+The final answer shown in figure 3.4 is indeed the correct answer to this problem.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Implementing a wrapper for easier text generation 65
+3.3 Implementing a wrapper for easier text generation
+We have loaded the pretrained LLM and set up the text generation functionality (as
+illustrated in figure 3.5). Now, for convenience in later sections, we’ll create a wrapper
+(see listing 3.3) for the text generation function so that we only have to pass in the
+model, tokenizer, and prompt, along with some additional settings, instead of repeat-
+ing the tokenization and input preparation steps each time.
+1 Load pretrained LLM Input
+If \(a+b=3\) and \(ab=\tfrac{13}
+{6}\), what is the value of
+2 Ask LLM to generate answer
+\(a^2+b^2\)?
+LLM
+The rendered question
+3 Extract final answer box
+We uussee tthhee iiddeennttiittyy
+\(aaa^^^222+++bbb^^^222==(((aaa+++bbb)))^^^222--222aabb\\).
+4 Normalize extracted answer …
+Finnaall AAnnsswweerr::
+\[
+\boooxxxeedd{{\\ddffrraacc{{1144}}{{33}}
+\]
+Output
+5 Verify equivalence
+6 Grade answers The LLM’s answer in raw
+text (using LaTeX syntax)
+7 Load MATH-500 dataset The rendered answer
+8 Evaluate the model
+Figure 3.5 In this section, we’ll wrap steps 1 and 2 of the verifier workflow into a reusable text-generation helper.
+Instead of repeating tokenization and input preparation each time, the wrapper handles prompting and streamed
+generation and returns the model’s raw LaTeX output.
+Listing 3.3 A wrapper for streamed text generation
+def generate_text_stream_concat(
+model, tokenizer, prompt, device, max_new_tokens,
+verbose=False,
+Encode prompt text into token
+):
+IDs and place on device.
+input_ids = torch.tensor(
+tokenizer.encode(prompt), device=device
+).unsqueeze(0)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+66 chapter 3 Evaluating reasoning models
+generated_ids = []
+for token in generate_text_basic_stream_cache( Stream tokens one by one
+model=model, using cached generation.
+token_ids=input_ids,
+max_new_tokens=max_new_tokens,
+eos_token_id=tokenizer.eos_token_id,
+):
+next_token_id = token.squeeze(0)
+generated_ids.append(next_token_id.item())
+Optionally print tokens
+as they are generated.
+if verbose:
+print(
+tokenizer.decode(next_token_id.tolist()),
+end="",
+flush=True
+)
+Decode all generated IDs
+into final text string.
+return tokenizer.decode(generated_ids)
+This wrapper function handles the full cycle of text generation: it tokenizes the input
+prompt, streams new tokens from the model, and then decodes the results into a final
+string.
+As mentioned before, the optional verbose flag allows us to see tokens as they are
+generated in real time. The function can be used as follows:
+generated_text = generate_text_stream_concat(
+model, tokenizer, prompt, device,
+Using False will suppress the
+max_new_tokens=2048,
+live token-by-token printing.
+verbose=True
+)
+This prints the exact same response you saw in section 3.2:
+[...] Shortened for brevity
+**Final Answer:**
+\[
+\boxed{\dfrac{14}{3}}
+\]
+3.4 Extracting the final answer box
+Now that we have the model loaded and ready, we can get to the interesting part: eval-
+uating the model.
+It is worth recalling that this book takes a from-scratch approach, which naturally
+includes some detailed, sometimes tedious, steps. This is intentional. We want to build
+the evaluation pipeline ourselves so we can better understand how it works, rather than
+just calling predefined wrapper functions and building blocks.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Extracting the final answer box 67
+In the previous section, you saw that the model returned the final answer in an
+answer box (written as r"\boxed{\dfrac{14}{3}}" in raw text). We did not enforce that
+format; the model likely produced it because boxed answers are a common convention
+in math benchmarks and training data. This behavior is not necessarily proof of over-
+fitting to the evaluation tasks we’ll run later, but it reflects that pretrained models often
+encounter many problem formats online and learn to reproduce those stylistic conven-
+tions. As a general rule, it’s fair to assume that any information available on the internet
+when a model was trained was part of the training data.
+Although it was not necessary here, when we later evaluate the model on the MATH-
+500 dataset, we will add a specific prompt instructing the model to return answers in this
+boxed form. (MATH-500 is a curated collection of 500 problems widely used as a bench-
+mark dataset for reasoning models.) This step is straightforward, and it will reappear
+whenever we need to turn a model response into something that can be scored automati-
+cally at scale. This common convention makes evaluation more consistent across models
+and simplifies data extraction.
+We will now write code that performs this extraction of the boxed answer content.
+This section implements step 3 in figure 3.6. (The next section will implement the nor-
+malization method for step 4.)
+1 Load pretrained LLM
+WWee uussee tthhee iiddeennttity
+\\\(((aa^^22++bb^^22==(((aa++bb)))^^22--22ab\).
+……………
+FFiinnaall AAnnsswweer:
+2 Ask LLM to generate answer \\\[[[
+\\\boxedd{{\\dfrac{{144}}{3}}
+\\\]]]
+Output
+3 Extract final answer box
+\dfrac{14}{3}
+4 Normalize extracted answer
+Extracts final boxed result
+from LLM response
+5 Verify equivalence
+6 Grade answers
+7 Load MATH-500 dataset
+8 Evaluate the model
+Figure 3.6 An illustration of how the boxed result is extracted from the LLM output
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+68 chapter 3 Evaluating reasoning models
+Because your model may produce slightly different responses than mine, depending
+on your hardware, the following code uses a hardcoded placeholder answer rather
+than generating a response with the model (but we’ll pretend that this answer was
+generated by the model). In later sections, we’ll revisit the model and have it generate
+answers for the tasks in the MATH-500 dataset:
+model_answer = (
+r"""... some explanation...
+**Final Answer:**
+\[
+The answer box we
+\boxed{\dfrac{14}{3}}
+want to extract
+\]
+""")
+NOTE We are using a raw string (r"""...""" instead of a regular string
+"""..."""). Raw strings make it easier to handle backslash (\) characters,
+which would otherwise be treated as escape sequences and require each back-
+slash to be doubled.
+Next, let’s define a function to extract the answer box from model_answer.
+Listing 3.4 Extracting answer boxes
+def get_last_boxed(text):
+boxed_start_idx = text.rfind(r"\boxed") Find the last occurrence
+if boxed_start_idx == -1: of “\boxed”.
+return None
+current_idx = boxed_start_idx + len(r"\boxed") Get the position after “\boxed”.
+while current_idx < len(text) and text[current_idx].isspace():
+current_idx += 1
+Skip any whitespace after “\boxed”.
+if current_idx >= len(text) or text[current_idx] != "{": Expect an
+return None opening
+brace “{“.
+current_idx += 1
+brace_depth = 1
+content_start_idx = current_idx
+while current_idx < len(text) and brace_depth > 0: Parse the braces
+char = text[current_idx] with nesting.
+if char == "{":
+brace_depth += 1
+elif char == "}":
+brace_depth -= 1
+current_idx += 1
+Account for unbalanced braces.
+if brace_depth != 0:
+return None
+Extract content inside
+the outermost braces.
+return text[content_start_idx:current_idx-1]
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Extracting the final answer box 69
+The get_last_boxed helper utility function in listing 3.4 extracts the content of the last
+\boxed{...} expression from a model’s output. More specifically, it scans for the final
+\boxed, skips over whitespace, checks for braces, and handles any nesting so that it cap-
+tures the intended answer string.
+While it may look a bit tedious, having this parser in place will pay off when we run
+evaluations on datasets like MATH-500, where extracting the correct final answer is the
+first step toward measuring a model’s reasoning ability.
+Now, let’s test this function on the model answer:
+extracted_answer = get_last_boxed(model_answer)
+print(extracted_answer)
+The output of this function call is "\dfrac{14}{3}", which is the boxed answer we
+wanted to extract.
+Rendering math formulas
+We can render math formulas via the Latex class introduced earlier. Alternatively, for
+standalone math formulas without accompanying answer text, we can use the sim-
+pler Math class:
+from IPython.display import Math
+display(Math(r"\dfrac{14}{3}"))
+This renders the fraction as
+The preceding get_last_boxed function correctly extracted the text, but we can
+make answer extraction a bit more robust with the extract_final_candidate function
+(shown in the following listing), which accounts for cases where a final answer box is
+missing or incomplete.
+Listing 3.5 Extracting the final answer candidate
+import re Regular expression for extracting
+numeric values from the text
+RE_NUMBER = re.compile(
+r"-?(?:\d+/\d+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
+)
+def extract_final_candidate(text, fallback="number_then_full"):
+Default return value if nothing matches
+result = ""
+if text: Prefer the last boxed
+boxed = get_last_boxed(text.strip()) expression if present.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+70 chapter 3 Evaluating reasoning models
+If there is
+if boxed:
+no boxed
+result = boxed.strip().strip("$ ")
+expression, try
+the fallback.
+elif fallback in ("number_then_full", "number_only"):
+m = RE_NUMBER.findall(text)
+if m:
+result = m[-1]
+elif fallback == "number_then_full": Use the last number.
+result = text Else return the full text if no number is found.
+return result
+This extract_final_candidate function provides fallback settings in case no boxed
+answer is found, as follows:
+¡ "number_then_full" (the default): Pick the last simple number; otherwise, pick
+the whole text.
+¡ "number_only": Pick the last simple number; otherwise, return an empty string "".
+¡ "none": Extract only the boxed content; otherwise, return an empty string "".
+For the fallback setting, the code in listing 3.5 uses regular expressions (regex for short)
+via Python’s re library. Regexes are a way to search for patterns in text. In our case,
+the regex pattern is designed to recognize numbers, including fractions, decimals, and
+scientific notation. While the regex syntax looks intimidating, you don’t need to worry
+about how it works here. What matters is that this gives us a reliable tool for extracting
+the last numeric candidate from the model’s output when no boxed answer is available.
+Let’s try it on our model answer:
+print(extract_final_candidate(model_answer))
+This correctly returns "\dfrac{14}{3}".
+Now let’s try some additional examples. First, here’s another boxed candidate:
+print(extract_final_candidate(r"\boxed{ 14/3. }"))
+This correctly returns "14/3.", stripping the extra whitespace but not the punctuation.
+The punctuation character will be handled correctly by the equality check we imple-
+ment later.
+Next, let’s try a candidate without a box, which should trigger the fallback setting:
+print(extract_final_candidate("abc < > 14/3 abc"))
+Thanks to the default fallback setting, it will find the last number in the answer and
+correctly return "14/3".
+In this section, we defined utility functions to extract the LLM’s answer from its
+response text. This brings us one step closer to our overall goal of verifying whether that
+answer is correct. In the next section, we’ll normalize the response into a more general,
+canonical form before implementing the checking functionality.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Normalizing the extracted answer 71
+Why not use an LLM to extract the answer?
+We could use an LLM to extract the boxed answer itself, but that would introduce
+unnecessary complexity and potential errors. Extraction is a simple, mechanical task,
+assuming that the LLM outputs the answer in a specific format: we just need to locate
+the last boxed expression or, if that is missing, fall back to a number or the raw text.
+Regular expressions may look complicated at first, but we now have a small, reusable
+utility function that is cheap to execute and handles the extraction deterministically
+and reproducibly, without depending on the variability of another model’s output.
+3.5 Normalizing the extracted answer
+Previously, we extracted the boxed answer "\dfrac{14}{3}" from the model’s response.
+Models may print the same value in many ways, such as "\frac{14}{3}", "14/3",
+"$14/3$", or "(14)/(3)". To implement and use a robust checking system to determine
+whether the answer is correct, we first need a consistent method of comparing results.
+In this section, we’ll implement a normalization (or canonicalization) pass (step 4 in
+figure 3.7) that strips formatting and standardizes the answer.
+1 Load pretrained LLM We use the identity
+\(a^2+b^2=(a+b)^2-2ab\).
+…
+Final Answer:
+2 Ask LLM to generate answer \[
+\boxed{\dfrac{14}{3}}
+\]
+Output
+3 Extract final answer box
+\\ddffrraacc{{1144}}{{33}}
+4 Normalize extracted answer
+(14)/(3)
+5 Verify equivalence
+Convert the extracted answer
+to a canonical plain form.
+6 Grade answers
+7 Load MATH-500 dataset
+8 Evaluate the model
+Figure 3.7 An illustration of how the boxed result from the LLM output is extracted and converted into a canonical
+plain form. This normalized answer will later be verified against the correct answer.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+72 chapter 3 Evaluating reasoning models
+The normalization step shown in figure 3.7 is implemented in the following normalize_
+text function.
+Listing 3.6 Normalizing extracted answers
+LATEX_FIXES = [
+(r"\\left\s*", ""), LaTeX formatting to be replaced
+(r"\\right\s*", ""), (left: original value, right: new value)
+(r"\\,|\\!|\\;|\\:", ""),
+(r"\\cdot", "*"),
+(r"\u00B7|\u00D7", "*"),
+(r"\\\^\\circ", ""),
+(r"\\dfrac", r"\\frac"),
+(r"\\tfrac", r"\\frac"),
+(r"°", ""),
+]
+Strip chat special tokens like
+<|assistant|>.
+RE_SPECIAL = re.compile(r"<\|[^>]+?\|>")
+SUPERSCRIPT_MAP = {
+"⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", Dictionary mapping to
+"⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9", convert unicode superscripts
+"⁺": "+", " ": "-", "": "(", "": ")", to plaintext superscripts
+}
+⁻ ⁽ ⁾
+def normalize_text(text):
+if not text:
+return ""
+text = RE_SPECIAL.sub("", text).strip()
+match = re.match(r"^[A-Za-z]\s*[.:]\s*(.+)$", text)
+if match:
+Strip leading multiple
+text = match.group(1)
+choice labels (e.g.,
+like “c. 3” → 3).
+text = re.sub(r"\^\s*\{\s*\\circ\s*\}", "", text)
+text = re.sub(r"\^\s*\\circ", "", text)
+Remove angle-degree markers.
+text = text.replace("°", "")
+match = re.match(r"^\\text\{(?P<x>.+?)\}$", text) Unwrap “\text{...}” if the
+if match: whole string is wrapped.
+text = match.group("x")
+text = re.sub(r"\\\(|\\\)|\\\[|\\\]", "", text) Strip inline/display math
+wrappers: \( \) \[ \].
+for pat, rep in LATEX_FIXES: LaTeX canonicalization
+text = re.sub(pat, rep, text)
+def convert_superscripts(s, base=None):
+converted = "".join(
+SUPERSCRIPT_MAP[ch] if ch in SUPERSCRIPT_MAP else ch
+for ch in s
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Normalizing the extracted answer 73
+)
+if base is None:
+return converted
+return f"{base}**{converted}"
+text = re.sub(
+r"([0-9A-Za-z\)\]\}])([⁰¹²³⁴⁵⁶⁷⁸⁹⁺ ]+)",
+lambda m: convert_superscripts(m.group(2), base=m.group(1)),
+⁻
+text,
+)
+text = convert_superscripts(text)
+text = text.replace("\\%", "%").replace("$", "").replace("%", "")
+text = re.sub(
+r"\\sqrt\s*\{([^}]*)\}", Normalize number
+and root expressions.
+lambda match: f"sqrt({match.group(1)})",
+text,
+)
+text = re.sub(
+r"\\sqrt\s+([^\\\s{}]+)",
+lambda match: f"sqrt({match.group(1)})",
+text,
+)
+Convert LaTeX fractions
+into division form.
+text = re.sub(
+r"\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}",
+lambda match: f"({match.group(1)})/({match.group(2)})",
+text,
+)
+text = re.sub(
+r"\\frac\s+([^\s{}]+)\s+([^\s{}]+)",
+lambda match: f"({match.group(1)})/({match.group(2)})",
+text,
+)
+Handle exponents
+and mixed numbers.
+text = text.replace("^", "**")
+text = re.sub(
+r"(?<=\d)\s+(\d+/\d+)",
+lambda match: "+" + match.group(1),
+text,
+)
+Remove thousands
+separators in numbers.
+text = re.sub(
+r"(?<=\d),(?=\d\d\d(\D|$))",
+"",
+text,
+)
+return text.replace("{", "").replace("}", "").strip().lower()
+This normalize_text function takes an extracted answer string and rewrites it into a
+standardized format that we can reliably compare against reference solutions. It first
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+74 chapter 3 Evaluating reasoning models
+strips away special tokens and unnecessary LaTeX clutter, such as \left, \right, or
+degree symbols. It then unwraps cases like \text{...}, removes inline math markers,
+and rewrites common structures into a calculator-style form. For example, it turns
+\sqrt{a} into sqrt(a) and \frac{a}{b} into (a)/(b). Finally, it normalizes exponents,
+mixed numbers, and thousands separators and cleans up braces and casing. In short,
+the function transforms differently formatted LaTeX outputs into a clean, standard-
+ized string representation.
+Let’s try the normalize_text function on our model answer:
+print(normalize_text(extract_final_candidate(model_answer)))
+Instead of printing the answer with LaTeX formatting (r"\dfrac{14}{3}"), it returns
+the answer in a standardized, LaTeX-free form:
+"(14)/(3)"
+Next, let’s try a differently formatted answer:
+print(normalize_text(r"\text{\[\frac{14}{3}\]}"))
+This also returns "(14)/(3)", as intended.
+We now have a robust method that extracts answer texts from an LLM’s response.
+In the next section, we’ll implement a function that compares the LLM answer with a
+correct reference answer.
+3.6 Verifying mathematical equivalence
+So far, we have implemented steps that ask an LLM to generate an answer, extract the
+relevant portion, and normalize it. The next step, as illustrated in figure 3.8, is to verify
+the extracted answer by comparing it to a correct reference answer, which in technical
+contexts is referred to as the ground truth. We will use such a verifier again in chapter 6
+to create a verifiable reward signal, and in later chapters we’ll use it to check whether
+our training changes improved our model.
+Note that to implement the equality check shown in figure 3.8, a direct comparison
+using Python’s == operator is not sufficient, since expressions like "14/3" and "(14)/
+(3)" would not match, and equivalent but unnormalized fractions such as "(28)/(6)"
+and "(14)/(3)" would also be treated as unequal.
+As part of our equality check, we’ll add an intermediate step: parsing the extracted,
+normalized answer with a symbolic math engine. For this, we’ll use the open source
+SymPy math library (https://sympy.org), which has been developed and tested over two
+decades and has become a staple of scientific computing in Python. The parsing func-
+tion is implemented in listing 3.7.
+NOTE If you haven’t installed the dependencies from chapter 2, you can man-
+ually install SymPy with uv pip install sympy (or uv add sympy).
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Verifying mathematical equivalence 75
+1 Load pretrained LLM We use the identity
+\(a^2+b^2=(a+b)^2-2ab\).
+…
+Final Answer:
+2 Ask LLM to generate answer \[
+\boxed{\dfrac{14}{3}}
+\]
+Output
+3 Extract final answer box
+\dfrac{14}{3}
+4 Normalize extracted answer
+(14)/(3) 14/3
+5 Verify equivalence Ground truth
+Are equal?
+6 Grade answers TTrruuee
+“Ground truth” is the
+correct answer provided
+Compare the LLM-generated
+in the dataset.
+answer (after extraction and
+7 Load MATH-500 dataset
+normalization) to the true
+(correct) answer.
+8 Evaluate the model
+Figure 3.8 An illustration of how an LLM-generated answer is checked against the correct reference answer
+(ground truth). The LLM’s final boxed answer is extracted, normalized, and compared to the correct answer
+provided in the dataset. If they match, the response is graded as correct.
+Listing 3.7 Using the SymPy parser for a mathematical equality check
+from sympy.parsing import sympy_parser as spp
+from sympy.core.sympify import SympifyError
+from sympy.polys.polyerrors import PolynomialError
+from tokenize import TokenError
+def sympy_parser(expr):
+if expr is None or len(expr) > 2000: To avoid crashing on
+return None long garbage responses
+try:
+return spp.parse_expr( Standard transformations
+expr, like handling parentheses
+transformations=(
+Allow omitted
+*spp.standard_transformations,
+multiplication symbols
+(e.g., 2y → 2*y).
+spp.implicit_multiplication_application,
+),
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+76 chapter 3 Evaluating reasoning models
+evaluate=True,
+)
+except (SympifyError, SyntaxError, TypeError, AttributeError,
+IndexError, TokenError, ValueError, PolynomialError):
+return None
+Evaluate during parsing so simple
+constants simplify (e.g., 2+3 → 5).
+This sympy_parser function takes an input expression, such as the normalized answers
+we extract from the LLM response, and converts it into a SymPy object that can be
+reliably compared for mathematical equivalence. To do so, it applies SymPy’s standard
+parsing rules, supports implicit multiplication (for example, 2y instead of 2 * y), and
+simplifies basic arithmetic (so 2 + 3 becomes 5).
+NOTE The sympy_parser accounts for what may seem like an excessive num-
+ber of error cases, but these are all errors I’ve encountered when evaluating
+the model on the 500 MATH-500 problems. The model does not always gener-
+ate perfectly formatted outputs.
+Let’s see sympy_parser in action and apply it to a normalized answer candidate:
+print(sympy_parser(normalize_text(
+extract_final_candidate(model_answer)
+)))
+This returns the fraction 14/3. Next, let’s try an unnormalized fraction:
+print(sympy_parser("28/6"))
+Similarly, this returns 14/3.
+Using sympy_parser, we can now implement the equality check function.
+Listing 3.8 Equality check function using SymPy
+from sympy import simplify First, check if the two expressions
+are exactly the same string.
+def equality_check(expr_gtruth, expr_pred):
+if expr_gtruth == expr_pred: Parse both expressions into
+return True SymPy objects (returns
+None if parsing fails).
+gtruth, pred = sympy_parser(expr_gtruth), sympy_parser(expr_pred)
+if gtruth is not None and pred is not None: If both expressions were
+try: parsed successfully, try
+return simplify(gtruth - pred) == 0 symbolic comparison.
+except (SympifyError, TypeError):
+pass If the difference is 0,
+they are equivalent.
+return False
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Grading answers 77
+The equality_check function in the preceding listing determines whether a model’s
+answer matches the ground-truth solution. It first looks for an exact string match, which
+is the simplest case. If the strings differ, it parses both expressions into SymPy objects
+(via the sympy_parser function we implemented in listing 3.7) and checks whether their
+difference simplifies to zero. This lets us recognize answers that may look different on
+the surface (for example, 14/3 and 28/6) but are mathematically the same.
+Let’s try the equality checker from listing 3.8 on an example:
+print(equality_check(
+normalize_text("13/4."),
+normalize_text(r"(13)/(4)")
+))
+As intended, this ignores the formatting and returns True. Next, let’s try a more chal-
+lenging example and see whether the symbolic math parser recognizes that 0.5 is the
+same as 1/2:
+print(equality_check(
+normalize_text("0.5"),
+normalize_text(r"(1)/(2)")
+))
+This also returns True. Now, let’s try a negative example:
+print(equality_check(
+normalize_text("14/3"),
+normalize_text("15/3")
+))
+This returns False, since the expressions are different.
+So far, so good. Based on these encouraging results, we might conclude that we now
+have a robust equality checker that we can use to evaluate the LLM on a math bench-
+mark dataset. To make sure it’s ready for prime time, let’s try one more example:
+print(equality_check(
+normalize_text("(14/3, 2/3)"),
+normalize_text("(14/3, 4/6)")
+))
+In this case, we are comparing two tuples. Since 2/3 and 4/6 are mathematically
+equivalent, we would expect the result to be True. Instead, the function returns False
+because it currently handles only simple expressions, not tuples. We will address this
+limitation in the next section.
+3.7 Grading answers
+Now we’ll build on the previous section’s mathematical equality-checking function to
+implement a robust grading function that can also handle tuple-like expressions, such
+as correctly comparing "(14/3, 2/3)" and "(14/3, 4/6)".
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+78 chapter 3 Evaluating reasoning models
+First, we’ll implement a Python helper function that splits such tuple-like expressions
+into individual subparts.
+Listing 3.9 A helper function to split tuple-like expressions
+def split_into_parts(text):
+result = [text]
+Check if text looks like a tuple or
+list, e.g., “(a, b)” or “[a, b]”.
+if text:
+if (
+len(text) >= 2
+and text[0] in "([" and text[-1] in ")]" Split on commas inside
+and "," in text[1:-1] brackets and strip whitespace.
+):
+items = [p.strip() for p in text[1:-1].split(",")]
+if all(items):
+result = items
+else: If text is empty,
+result = [] return an empty list.
+return result
+The preceding split_into_parts function helps us handle answers with multiple com-
+ponents. If the input looks like a tuple or list, such as (a, b) or [a, b], it splits the con-
+tent on the commas and returns the individual pieces. (If the string is empty, it simply
+returns an empty list.) In essence, this function breaks down multipart answers into
+smaller parts that can be checked one by one.
+Before we implement the grading function, let’s take split_into_parts for a test
+drive on the tuple-like expression from earlier:
+split_into_parts(normalize_text(r"(14/3, 2/3)"))
+This returns ['14/3', '2/3'], as desired.
+Now, we can implement the grade_answer function (listing 3.10), which splits tuple-like
+expressions (if present) into subparts and then uses the equality_check function from
+the previous section to compare a generated answer to a reference (ground truth) answer.
+Listing 3.10 Function to grade predicted answers against the ground truth
+def grade_answer(pred_text, gt_text): Default outcome if checks fail
+result = False
+if pred_text is not None and gt_text is not None: Only continue if
+gt_parts = split_into_parts( both inputs are
+normalize_text(gt_text) non-empty strings.
+)
+pred_parts = split_into_parts(
+normalize_text(pred_text)
+)
+if (gt_parts and pred_parts Ensure both sides have the
+and len(gt_parts) == len(pred_parts)): same number of valid parts.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Grading answers 79
+result = all(
+equality_check(gt, pred)
+for gt, pred in zip(gt_parts, pred_parts)
+)
+Check each part for
+True only if all checks passed mathematical equivalence.
+return result
+This implementation of the grade_answer function first assumes the prediction is
+incorrect (False) and continues only if both the prediction and the ground truth are
+non-empty. It then normalizes each side and splits them into subparts (for example,
+breaking "(14/3, 2/3)" into ["14/3", "2/3"]). If the number of subparts matches, it
+compares them one by one using equality_check. The result is returned as correct
+(True) only if all pairs match mathematically.
+We can think of the grade_answer function as an advanced version of the equality_
+check function from the previous section. It can split tuple-like expressions and
+normalize the answers before applying the equality_check function.
+On simple expressions, it works similarly to equality_check, returning True if two
+expressions are mathematically equivalent:
+grade_answer("14/3", r"\frac{14}{3}")
+In addition, it now also returns True for two mathematically equivalent tuple-like
+expressions:
+grade_answer(r"(14/3, 2/3)", "(14/3, 4/6)")
+To check the grade_answer function more comprehensively, the following listing con-
+tains more diverse test cases.
+Listing 3.11 Test cases and demo function to test the grader
+tests = [
+("check_1", "3/4", r"\frac{3}{4}", True),
+("check_2", "(3)/(4)", r"3/4", True),
+("check_3", r"\frac{\sqrt{8}}{2}", "sqrt(2)", True),
+("check_4", r"\( \frac{1}{2} + \frac{1}{6} \)", "2/3", True),
+("check_5", "(1, 2)", r"(1,2)", True),
+Defines the test cases:
+("check_6", "(2, 1)", "(1, 2)", False),
+(name, prediction, ground
+("check_7", "(1, 2, 3)", "(1, 2)", False),
+truth, expected result)
+("check_8", "0.5", "1/2", True),
+("check_9", "0.3333333333", "1/3", False),
+("check_10", "1,234/2", "617", True),
+("check_11", r"\text{2/3}", "2/3", True),
+("check_12", "50%", "1/2", False),
+("check_13", r"2\cdot 3/4", "3/2", True),
+("check_14", r"90^\circ", "90", True),
+("check_15", r"\left(\frac{3}{4}\right)", "3/4", True),
+("check_16", r"2²", "2**2", True),
+]
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+80 chapter 3 Evaluating reasoning models
+def run_demos_table(tests):
+header = ("Test", "Expect", "Got", "Status")
+rows = []
+for name, pred, gtruth, expect in tests:
+Runs an equality check
+got = grade_answer(pred, gtruth)
+status = "PASS" if got == expect else "FAIL"
+rows.append((name, str(expect), str(got), status))
+data = [header] + rows
+col_widths = [ Computes the max width for each
+max(len(row[i]) for row in data) column to align table nicely
+for i in range(len(header))
+]
+Prints the table row by row
+for row in data:
+line = " | ".join(
+row[i].ljust(col_widths[i])
+for i in range(len(header))
+)
+print(line)
+passed = sum(r[3] == "PASS" for r in rows) Prints the summary
+print(f"\nPassed {passed}/{len(rows)}") of passed tests
+The code in listing 3.11 is a simple test suite that uses a selection of tests to check
+whether the grade_answer function works as intended. The tests list contains tuples
+covering fractions, LaTeX notation, tuple inputs, decimals, percentages, and other
+tricky formats. The run_demos_table function then runs each test by calling grade_
+answer, collects the outcomes, and organizes the results into a formatted table.
+Calling the run_demos_table(tests) function in listing 3.11 prints the following table:
+Test | Expect | Got | Status
+check_1 | True | True | PASS
+check_2 | True | True | PASS
+check_3 | True | True | PASS
+check_4 | True | True | PASS
+check_5 | True | True | PASS
+check_6 | False | False | PASS
+check_7 | False | False | PASS
+check_8 | True | True | PASS
+check_9 | False | False | PASS
+check_10 | True | True | PASS
+check_11 | True | True | PASS
+check_12 | False | False | PASS
+check_13 | True | True | PASS
+check_14 | True | True | PASS
+check_15 | True | True | PASS
+check_16 | True | True | PASS
+Passed 16/16
+As you can see from the PASS results, the grade_answer function is relatively robust and
+can handle a variety of differently formatted expressions.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Loading the evaluation dataset 81
+Exercise 3.1: Adding more test cases
+Try to think of additional test cases, ideally, challenging ones, and add them to the
+run_demos_table() function. Can you find cases where the check fails incorrectly?
+With grade_answer implemented, we now have the building blocks to evaluate the
+LLM. In the next section, we’ll load a math dataset on which to evaluate it.
+3.8 Loading the evaluation dataset
+As you have seen so far in this chapter, implementing a robust verification pipeline can
+be tedious. Fortunately, we now have all the pieces in place, from answer extraction
+to grading, and we’re ready to evaluate the LLM on a benchmark dataset. As shown
+in figure 3.9, we’ll use the MATH-500 dataset (https://huggingface.co/datasets/
+HuggingFaceH4/MATH-500), a widely used benchmark for reasoning models. It is a
+curated collection of 500 problems sampled from the original MATH dataset.
+1 Load pretrained LLM
+2 Ask LLM to generate answer
+3 Extract final answer box
+Dataset consisting of
+many math problems
+4 Normalize extracted answer
+5 Verify equivalence
+6 Grade answers
+7 Load MATH-500 dataset
+8 Evaluate the model
+Figure 3.9 Loading the evaluation dataset. We completed steps 2-6 (generate, extract, normalize, verify, and
+grade answers) in the previous sections; the two remaining steps are to load the full dataset (step 7) and apply the
+same procedure across all the problems to evaluate the model (step 8).
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+82 chapter 3 Evaluating reasoning models
+Using MATH-500 is a practical choice for three reasons. First, MATH-500 is large
+enough to be meaningful but still small enough to keep repeated evaluations through-
+out the book manageable, whereas running the full MATH dataset each time would
+be much slower. Second, in later chapters we’ll use a non-overlapping training subset
+derived from the original MATH dataset, so keeping MATH-500 as a held-out evalua-
+tion set gives us a clean reference point. Third, MATH-500 is a common benchmark
+dataset in the reasoning-model literature, which makes the results in this book easier to
+compare with prior work. I also prefer MATH-500 over simpler datasets such as GSM8K
+because it is more challenging for modern reasoning models and it better matches the
+kind of multistep symbolic verification pipeline we are building in this chapter.
+We’ll load the MATH-500 dataset using the following code.
+Listing 3.12 Loading the MATH-500 dataset
+import json
+import requests
+def load_math500_test(local_path="math500_test.json", save_copy=True):
+local_path = Path(local_path)
+url = (
+"https://raw.githubusercontent.com/rasbt/reasoning-from-scratch/"
+"main/ch03/01_main-chapter-code/math500_test.json"
+)
+if local_path.exists():
+with local_path.open("r", encoding="utf-8") as f:
+data = json.load(f)
+else:
+r = requests.get(url, timeout=30)
+r.raise_for_status()
+data = r.json()
+if save_copy: # Saves a local copy
+with local_path.open("w", encoding="utf-8") as f:
+json.dump(data, f, indent=2)
+return data
+math_data = load_math500_test()
+print("Number of entries:", len(math_data))
+This prints the following result:
+Number of entries: 500
+Loading the dataset from Hugging Face Model Hub
+The MATH-500 dataset split was originally proposed in the PRM800K repository
+(https://github.com/openai/prm800k/tree/main?tab=readme-ov-file#math-splits),
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Loading the evaluation dataset 83
+and it is also available on the Hugging Face Hub (https://huggingface.co/datasets/
+HuggingFaceH4/MATH-500). The code we use in this chapter loads a copy from the
+code repository so you can ensure reproducibility if the external sources change.
+If you prefer to download the dataset directly from Hugging Face, you can use the
+following optional code. Note that this requires the datasets library, which can be
+installed via pip install datasets or uv add datasets:
+from datasets import load_dataset
+dset = load_dataset("HuggingFaceH4/MATH-500", split="test")
+Before we implement the model evaluation pipeline in the next section, let’s take a
+closer look at the structure of the dataset by printing its first entry (we’ll use the built-in
+pprint library for nicer formatting):
+from pprint import pprint
+pprint(math_data[0])
+This produces the following output:
+{'answer': '\\left( 3, \\frac{\\pi}{2} \\right)',
+'level': 2,
+'problem': 'Convert the point $(0,3)$ in rectangular coordinates to polar '
+'coordinates. Enter your answer in the form $(r,\\theta),$ where '
+'$r > 0$ and $0 \\le \\theta < 2 \\pi.$',
+'solution': 'We have that $r = \\sqrt{0^2 + 3^2} = 3.$ Also, if we draw the '
+'line connecting the origin and $(0,3),$ this line makes an
+angle '
+'of $\\frac{\\pi}{2}$ with the positive $x$-axis.\n'
+'\n'
+'[asy]\n'
+'unitsize(0.8 cm);\n'
+'\n'
+'draw((-0.5,0)--(3.5,0));\n'
+'draw((0,-0.5)--(0,3.5));\n'
+'draw(arc((0,0),3,0,90),red,Arrow(6));\n'
+'\n'
+'dot((0,3), red);\n'
+'label("$(0,3)$", (0,3), W);\n'
+'dot((3,0), red);\n'
+'[/asy]\n'
+'\n'
+'Therefore, the polar coordinates are $\\boxed{\\left( 3, '
+'\\frac{\\pi}{2} \\right)}.$',
+'subject': 'Precalculus',
+'unique_id': 'test/precalculus/807.json'}
+As you can see, the dataset entry is formatted as a Python dictionary with keys and val-
+ues, sorted in alphabetical order. These are the relevant keys:
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+84 chapter 3 Evaluating reasoning models
+¡ problem: The math question or problem for the LLM to solve
+¡ answer: The correct (ground truth) answer we want to compare the LLM answer
+against
+¡ solution: A worked-out, step-by-step explanation of the problem (not used in
+this chapter, but useful for training or analysis)
+Now that we have a pretrained LLM, evaluation functions, and a benchmark dataset to
+work with, we can evaluate the model.
+3.9 Evaluating the model
+In this section, we’ll put the LLM text generation and evaluation tools from steps 2–6
+in figure 3.10 into practice and apply them to the MATH-500 dataset (step 8), which we
+loaded in the previous section. This full pipeline will be important in future chapters
+because it will be the main way we’ll measure progress when we compare prompting
+methods and training-based improvements.
+1 Load pretrained LLM
+2 Ask LLM to generate answer Step 8 executes steps 2–6 on problems
+from the MATH-500 dataset shown below.
+3 Extract final answer box
+MATH-500 accuracy
+4 Normalize extracted answer
+Dataset consisting of
+LLM many math problems
+5 Verify equivalence
+6 Grade answers
+7 Load MATH-500 dataset
+8 Evaluate the model
+Figure 3.10 The complete evaluation pipeline for the MATH-500 dataset. After loading the dataset (step 7), steps
+2–6 are applied systematically across all problems to obtain the final model evaluation (step 8).
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Evaluating the model 85
+As you may recall from section 3.4, our answer-checking pipeline expects the model to
+return the answer in boxed form, which is a common convention when evaluating rea-
+soning models on math problems. To increase the likelihood that the model adheres
+to this format, we can format the prompt as follows.
+Listing 3.13 Function to render a prompt template for math evaluation
+def render_prompt(prompt):
+template = (
+"You are a helpful math assistant.\n"
+"Answer the question and write the final result on a new line as:\n"
+"\\boxed{ANSWER}\n\n"
+f"Question:\n{prompt}\n\nAnswer:"
+)
+return template
+Let’s now apply this prompt template to the example prompt introduced in section 3.2
+and shown again here:
+prompt = (
+r"If $a+b=3$ and $ab=\tfrac{13}{6}$, "
+r"what is the value of $a^2+b^2$?"
+)
+prompt_fmt = render_prompt(prompt)
+print(prompt_fmt)
+The formatted prompt is now as follows:
+You are a helpful math assistant.
+Answer the question and write the final result on a new line as:
+\boxed{ANSWER}
+Question:
+If $a+b=3$ and $ab=\tfrac{13}{6}$, what is the value of $a^2+b^2$?
+Answer:
+Next, we’ll pass the prompt to the text generation wrapper function we defined in list-
+ing 3.3 to recap the text generation process before we construct the model evaluation
+function:
+generated_text = generate_text_stream_concat(
+model, tokenizer, prompt_fmt, device,
+max_new_tokens=2048,
+verbose=True
+)
+Using this prompt example, the model responds with a relatively brief answer:
+"\boxed{10}". (Note that the generated response may differ depending on whether
+you run the code on a CPU, CUDA, or MPS device.)
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+86 chapter 3 Evaluating reasoning models
+While brevity can speed up generation by reducing the number of tokens, the
+response is incorrect. In section 3.3, by contrast, without a prompt template, the model
+produced a longer response, which led to the correct answer, 14/3.
+Whether the prompt template is well suited to a given model and task needs to be
+determined on a larger set of examples, such as the MATH-500 dataset, before we can
+draw any conclusions.
+Prompt template choices
+The prompt template in listing 3.13 is used here to show how you can implement a
+model evaluation pipeline with answers that are automatically checked for correct-
+ness. The chosen template encourages short outputs, which will let you work through
+this chapter efficiently on a first read. Afterward, I recommend revisiting the chapter’s
+examples with alternative settings to optimize accuracy on the official Qwen3 reason-
+ing model variant used here as a reference model.
+As it turns out, using no prompt template boosts the base model’s performance by
+50%, but it reduces the reasoning model’s accuracy by 40%.
+Additionally, we can experiment with alternative prompt templates. For instance, the
+standard prompt commonly used for the MATH-500 benchmark is a variant of listing
+3.13 that swaps “Question:” for “Problem:”. This seemingly minor change improves
+the base model’s accuracy by approximately 20%, likely because it better matches
+the memorized training data (assuming the MATH-500 test set was included in the
+training corpus). While the base model benefits from this change, the reasoning
+model variant’s accuracy drops by 30%.
+Earlier, I mentioned that answer extraction is a simple, mechanical task that can
+be solved with deterministic code rather than by employing another LLM for answer
+extraction. Based on the change in accuracy across different prompting templates, it
+looks like our extraction method may not be reliable. This is not necessarily the case.
+Also, it’s not necessarily the case that the LLM generates misformatted answers. It
+may simply be incorrect, and switching to another LLM for extraction would not solve
+that. Smaller base models are often quite sensitive to prompt phrasing. In the next
+chapter, you’ll see that this becomes even more apparent once we introduce addi-
+tional prompt variations.
+Before we implement the final model evaluation function, let’s test our model evalua-
+tion pipeline from end to end on a smaller example using the following demo function.
+Listing 3.14 Demo function to run the evaluation pipeline
+def mini_eval_demo(model, tokenizer, device):
+ex = { Test the example with “problem”
+"problem": "Compute 1/2 + 1/6.", and “answer” fields.
+"answer": "2/3"
+}
+1. Apply prompt template
+prompt = render_prompt(ex["problem"])
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Evaluating the model 87
+gen_text = generate_text_stream_concat(
+model, tokenizer, prompt, device,
+2. Generate response
+max_new_tokens=64,
+)
+3. Extract and
+pred_answer = extract_final_candidate(gen_text)
+normalize answer
+is_correct = grade_answer(
+pred_answer, ex["answer"] 4. Grade answer
+)
+print(f"Device: {device}")
+print(f"Prediction: {pred_answer}")
+print(f"Ground truth: {ex['answer']}")
+print(f"Correct: {is_correct}")
+This mini_eval_demo function combines all the aspects we have covered so far in this
+chapter:
+1 Applying a prompt template
+2 Feeding the formatted prompt to the LLM to generate an answer
+3 Extracting and normalizing the answer
+4 Grading the answer
+The mini_eval_demo function essentially connects the evaluation components into a
+small function that we can use to test the code before building our final evaluation
+pipeline for the MATH-500 dataset. The code starts with a toy example (ex), renders
+the problem into the prompt template (prompt), and streams a response from the
+model (generate_text_stream_concat). It then parses the model output into a final
+candidate answer (pred_answer) and grades it against the ground truth with grade_
+answer. Lastly, it prints the results for us to evaluate.
+Calling the mini_eval_demo(model, tokenizer, device) function results in the fol-
+lowing output:
+Device: mps
+Prediction: 1/3
+Ground truth: 2/3
+Correct: False
+You can see that the generated answer ("1/3") was correctly extracted, but it doesn’t
+match the correct answer ("2/3"), so the check returns False. (Note that your results
+may differ depending on whether you run the code on a CPU, CUDA, or MPS device.)
+Now that we have tested our workflow on a simple example, let’s implement it on the
+MATH-500 dataset.
+Listing 3.15 End-to-end model evaluation pipeline for MATH-500 dataset
+import time
+Helper function to print progress with
+optional ETA (estimated time to arrival)
+def eta_progress_message(
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+88 chapter 3 Evaluating reasoning models
+processed,
+total,
+start_time,
+show_eta=False,
+label="Progress",
+):
+progress = f"{label}: {processed}/{total}"
+pad_width = len(f"{label}: {total}/{total} | ETA: 00h 00m 00s")
+if not show_eta or processed <= 0:
+return progress.ljust(pad_width)
+elapsed = time.time() - start_time
+if elapsed <= 0:
+return progress.ljust(pad_width)
+remaining = max(total - processed, 0)
+if processed:
+avg_time = elapsed / processed
+eta_seconds = avg_time * remaining
+else:
+eta_seconds = 0
+eta_seconds = max(int(round(eta_seconds)), 0)
+minutes, rem_seconds = divmod(eta_seconds, 60)
+hours, minutes = divmod(minutes, 60)
+if hours:
+eta = f"{hours}h {minutes:02d}m {rem_seconds:02d}s"
+elif minutes:
+eta = f"{minutes:02d}m {rem_seconds:02d}s"
+else:
+eta = f"{rem_seconds:02d}s"
+message = f"{progress} | ETA: {eta}"
+return message.ljust(pad_width)
+def evaluate_math500_stream(
+model,
+tokenizer,
+device,
+math_data,
+out_path=None,
+max_new_tokens=512,
+verbose=False,
+):
+Make the filename
+if out_path is None:
+compatible with Windows.
+dev_name = str(device).replace(":", "-")
+out_path = Path(f"math500-{dev_name}.jsonl")
+num_examples = len(math_data)
+num_correct = 0
+start_time = time.time()
+Save the results
+for inspection.
+with open(out_path, "w", encoding="utf-8") as f:
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Evaluating the model 89
+for i, row in enumerate(math_data, start=1):
+Apply the prompt template.
+prompt = render_prompt(row["problem"])
+gen_text = generate_text_stream_concat(
+Generate a response.
+model, tokenizer, prompt, device,
+max_new_tokens=max_new_tokens,
+verbose=verbose,
+)
+Extract and normalize
+the answer.
+extracted = extract_final_candidate(
+gen_text
+)
+Grade the answer.
+is_correct = grade_answer(
+extracted, row["answer"]
+)
+num_correct += int(is_correct)
+record = { R e c o rd to be sa v e d f o r in s pection
+"index": i,
+"problem": row["problem"],
+"gtruth_answer": row["answer"],
+"generated_text": gen_text,
+"extracted": extracted,
+"correct": bool(is_correct),
+}
+f.write(json.dumps(record, ensure_ascii=False) + "\n")
+progress_msg = eta_progress_message(
+processed=i,
+total=num_examples,
+start_time=start_time,
+show_eta=True,
+label="MATH-500",
+)
+print(progress_msg, end="\r", flush=True)
+if verbose: P r in t t h e r es p o n s es du r i n g generation.
+print(
+f"\n\n{'='*50}\n{progress_msg}\n"
+f"{'='*50}\nExtracted: {extracted}\n"
+f"Expected: {row['answer']}\n"
+f"Correct so far: {num_correct}\n{'-'*50}"
+)
+seconds_elapsed = time.time() - start_time
+acc = num_correct / num_examples if num_examples else 0.0
+print(f"\nAccuracy: {acc*100:.1f}% ({num_correct}/{num_examples})")
+print(f"Total time: {seconds_elapsed/60:.1f} min")
+print(f"Logs written to: {out_path}")
+return num_correct, num_examples, acc
+The evaluate_math500_stream function in listing 3.15 uses the same main steps as the
+smaller demo function from listing 3.14: for each problem, it renders the prompt,
+streams a model response, extracts the answer candidate, and grades it against the ref-
+erence answer.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+90 chapter 3 Evaluating reasoning models
+In addition to iterating over a dataset with multiple entries, it adds a few extra bells
+and whistles. For instance, it saves the generated responses to a JSON file in a Python
+dictionary-like format for record keeping and closer inspection.
+Let’s now run this function on a subset: the first 10 examples of MATH-500. This
+takes about 0.7 minutes on a Mac Mini with an M4 chip. (Evaluating the reasoning
+model variant takes about 7 minutes because it generates longer responses.)
+print("Model:", WHICH_MODEL)
+print("Device:", device)
+num_correct, num_examples, acc = evaluate_math500_stream(
+model, tokenizer, device,
+math_data=math_data[:10], Only evaluate on the first 10 examples.
+max_new_tokens=2048,
+verbose=False Set to true to read the responses
+) as they are being generated.
+In the preceding code example, we set max_new_tokens to a generous 2,048 because
+the reasoning model variant, by design, tends to generate much longer responses, and
+we don’t want to cut it off prematurely. This leads to much longer evaluation times,
+and it may appear that generation is stuck. Optionally, you could set verbose=True to
+see the response being generated live, token by token.
+The result of running evaluate_math500_stream is as follows:
+Model: base
+Device: mps
+MATH-500: 10/10 | ETA: 00s
+Accuracy: 30.0% (3/10)
+Total time: 0.4 min
+(As usual, the results may differ depending on whether you execute the code on a
+CPU, CUDA, or MPS device.)
+As you can see, the model achieves a relatively low accuracy of 30%. We can open
+the math500_base-mps.jsonl file in a text editor to analyze the results together with
+the generated response. For instance, the answers have been successfully extracted in
+all cases, but they are simply wrong, which indicates that the model does not have very
+strong math-problem-solving capabilities (yet). This is expected because it is merely a
+base model.
+Loading the .jsonl file programmatically
+The .jsonl file suffix is a convention used for JSON files with one data entry per row.
+You can view it in your favorite text editor. Optionally, you can load the .jsonl file cre-
+ated during the evaluation in Python using the following code:
+dev_name = str(device).replace(":", "-")
+local_path = f"math500_{WHICH_MODEL}-{dev_name}.jsonl"
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Evaluating the model 91
+results = []
+with open(local_path, "r") as f:
+for line in f:
+if line.strip():
+results.append(json.loads(line))
+The reasoning model variant, which you can enable by setting WHICH_MODEL =
+"reasoning" in listing 3.1, performs much better, achieving 90% accuracy on the same
+10-sample subset and 50.8% on the complete 500-sample dataset, as shown in table 3.1.
+Table 3.1 MATH-500 task accuracy on different devices
+Mode Device Accuracy MATH-500 size
+Base CPU 30% 10
+Base CUDA 30% 10
+Base MPS 30% 10
+Reasoning CPU 90% 10
+Reasoning CUDA 90% 10
+Reasoning MPS 80% 10
+Base CUDA 15.3% 500
+Reasoning CUDA 50.8% 500
+As shown in table 3.1, the reasoning variant, with its longer responses, has drastically
+improved accuracy, but it also increases compute intensity and answer generation time
+substantially (from 0.4 minutes for the base model to 7 minutes for the reasoning
+model on a Mac Mini with an M4 chip on the 10-sample subset, and from 13.3 minutes
+to 185.4 minutes on an NVIDIA H100 GPU on the 500-sample dataset), which high-
+lights one of the tradeoffs of using reasoning models. Note that these numbers were
+obtained in PyTorch 2.8 and can differ across PyTorch versions.
+TIP The book’s code repository contains a bonus script that runs the code
+in this chapter in batched mode (https://github.com/rasbt/reasoning
+-from-scratch/blob/main/ch03/02_math500-verifier-scripts/evaluate_
+math500_batched.py). This means it processes multiple examples per forward
+pass to speed up evaluation, but it requires more RAM. Using a batch size of
+128 to evaluate all 500 samples reduces the running time of the base model
+from 13.3 minutes to 3.3 minutes on an H100 GPU. Similarly, it reduces the
+running time of the reasoning model from 185.4 minutes to 14.6 minutes.
+Note that the H100 is used as an example here; the script is compatible with
+other GPUs as well.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+92 chapter 3 Evaluating reasoning models
+Exercise 3.2: Calculating the average response length
+Try modifying the code in this chapter to also report the average response length in
+the evaluate_math500_stream function (listing 3.15). Instead of modifying the func-
+tion directly, you could also compute the response length from the generated JSON
+report files.
+Exercise 3.3: Extending or changing the evaluation dataset
+We chose a subset of only 10 examples for computational efficiency. You can also run
+the code on larger or different portions of the dataset to see whether the 10-sample
+subset is representative. Ideally, you could also experiment with your own data. (For
+reference, evaluating the base model on the complete MATH-500 dataset takes
+about 13.3 minutes for the base model and 185.4 minutes for the reasoning model
+on an H100.)
+Exercise 3.4: Experimenting with different prompt templates
+Models can be sensitive to different prompt templates. Experiment with different
+prompt templates in listing 3.13 to see how they affect the results. Also, while the
+Qwen3 team recommends using the base model without an additional chat template,
+you can enable the apply_chat_template=True setting in the tokenizer (listing 3.1)
+and observe whether it improves base model performance.
+This concludes our implementation of a verification-based approach for math tasks
+(figure 3.11). I chose math because it is both natural to implement and widely used
+in reasoning-specific training, particularly reinforcement learning with verifiable
+rewards, which we’ll cover in chapter 6. The same concept can be extended to other
+domains, such as code; we didn’t explore that here because executing code would
+involve setting up a secure virtual environment.
+Before we move on, it’s worth noting that evaluation also comes in many other fla-
+vors. In this chapter, we focused on verification-based accuracy for math problems
+because it is a popular method and because we will reuse this verifier as part of the
+reinforcement learning pipeline in chapters 6 and 7. For a broader overview, appendix
+F walks through other common evaluation strategies, such as multiple- choice bench-
+marks, verifiers, leaderboards, and LLM-as-judge setups. It also includes hands-on
+examples if you want a quick tour of how these methods work in practice.
+Now that we have an evaluation framework in place, the next chapter will focus on
+improving reasoning capabilities through more advanced inference (text generation)
+techniques.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Summary 93
+Stage 2: Measuring Stage 4: Reasoning
+performance with training
+(chapter 3) Stage 3: Reasoning (chapters 6 to 8)
+Stage 1: LLM basics without training
+(chapter 2) 2 Evaluation (chapters 4 and 5) 4 Training
+techniques
+1 Conventional 3 Inference
+LLM techniques
+Benchmark-based Reinforcement
+evaluation learning
+Loading pretrained Advanced text
+weights generation and voting
+Judgment-based
+Distillation
+evaluation
+Text generation Self-refinement
+Multiple ★Verifiers Leaderboards LLM judges
+choice
+In this chapter, we implemented a
+verification-based evaluation technique.
+Figure 3.11 A model of the topics covered in this book. This chapter implements a verification-based evaluation
+pipeline. In the next chapter, we improve the reasoning capabilities of the LLM through more advanced inference
+techniques.
+Summary
+¡ There are four main evaluation methods for LLMs: multiple choice, verifiers,
+leaderboards, and LLM judges.
+¡ Verification-based evaluation methods allow free-form answers and use external
+tools to check correctness.
+¡ This chapter focuses on verification-based evaluation by building a math verifier
+that extracts, normalizes, and checks answers with SymPy.
+– The verification pipeline involves several core steps, from loading the LLM to
+running the evaluation on a dataset.
+– As part of the verification pipeline, answer extraction uses string parsing to
+locate boxed content (with fallback mechanisms for missing boxes).
+– Another step implements normalization, which standardizes diverse answer
+formats by stripping LaTeX and converting mathematical notation.
+¡ Finally, the pipeline uses mathematical equivalence checking (via SymPy) to
+compare expressions symbolically.
+¡ The MATH-500 dataset provides 500 curated math problems for evaluation.
+¡ Prompt templates significantly impact model performance.
+¡ The reasoning model achieves higher accuracy than the base model, but it
+requires a much longer running time.
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+4
+Improving reasoning
+with inference-time
+scaling
+This chapter covers
+¡ Prompting an LLM to explain its reasoning to
+improve answer accuracy
+¡ Modifying the text generation function to produce
+diverse responses
+¡ Improving reasoning reliability by sampling
+multiple responses
+Reasoning performance and answer accuracy can be improved without retraining
+or modifying the model itself. As shown in the overview in figure 4.1, this chapter
+covers two inference-time-scaling methods. These methods operate during infer-
+ence, when the model generates text. As you’ll see later in this chapter, both meth-
+ods more than double the accuracy of the base model used in previous chapters.
+We’ll first look at what inference-time scaling is, before we discuss the inference
+methods shown in figure 4.1.
+94
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
+Introduction to inference-time scaling 95
+This chapter covers techniques to improve
+reasoning without model training.
+Stage 2: Measuring Stage 4: Reasoning
+performance with training
+(chapter 3) Stage 3: Reasoning (chapters 6 to 8)
+Stage 1: LLM basics without training
+(chapter 2) 2 Evaluation (chapters 4 and 5) 4 Training
+techniques
+1 Conventional 3 Inference
+LLM techniques
+Benchmark-based Reinforcement
+evaluation learning
+Loading pretrained Advanced text
+weights generation and voting
+Judgment-based
+Distillation
+evaluation
+Text generation Self-refinement
+This chapter focuses on extending The next chapter introduces an
+the text generation function and inference-time-scaling technique
+implementing a voting-based technique where the model iteratively
+to improve answer accuracy. improves its own answers.
+Figure 4.1 A model of the topics covered in this book. This chapter focuses on inference-time-scaling techniques,
+which improve reasoning without additional training (stage 3). In particular, it extends the text generation function
+and implements a voting-based method to improve answer accuracy. The next chapter will introduce another
+inference-time-scaling approach where the model iteratively refines its own answers.
+4.1 Introduction to inference-time scaling
+There are two main strategies to improve reasoning:
+¡ Increasing training compute
+¡ Increasing inference compute (also known as inference-time scaling or test-time
+scaling)
+NOTE In machine learning and AI, “compute” refers to the computational
+resources required to train or run a model.
+These two approaches are illustrated in figure 4.2, and the plots make it look like we
+can improve reasoning either by increasing training-time compute or inference-time
+compute. In reality, LLMs are usually designed to improve reasoning by combining
+heavy training-time compute (a topic of future chapters) and increased inference-time
+compute (the topic of this chapter).
+Inference-time compute scaling (also called inference-time scaling or test-time compute scal-
+ing) means increasing computation at answer-generation time, after the model has
+already been trained, to improve the quality of its response. Instead of changing the
+Licensed to THIAGO BANDEIRA <thiago@lar.ifce.edu.br>
+
