@@ -7,7 +7,8 @@ Checks:
   2. Guard coverage: math expressions must be wrapped in guards.
   3. Format correctness: AsciiDoc in ifndef, Markdown in ifdef.
   4. Banned patterns: [source, math] is not allowed.
-  5. W001: unnecessary guard blocks; W002: simple math that could use Unicode.
+  5. W001: unnecessary guard blocks; W002: simple math that could use Unicode;
+     W003: $$ block math in ifdef (prefer ```math).
 
 Usage:
   python tools/check-math-expression.py <file.asc>              # check only
@@ -273,21 +274,25 @@ def check_guard_coverage(lines: List[str], path: str) -> List[Issue]:
 
 
 def check_format_correctness(lines: List[str], path: str) -> List[Issue]:
-    """E004: Check format correctness — asciidoc in ifndef, markdown in ifdef."""
+    """E004 / E006 / W003: format correctness — asciidoc in ifndef, markdown in ifdef."""
     issues = []
     in_ifndef = False
     in_ifdef = False
+    in_dd_block = False
 
     for i, line in enumerate(lines, 1):
         if "ifndef::env-github[]" in line:
             in_ifndef = True
             in_ifdef = False
+            in_dd_block = False
         elif "ifdef::env-github[]" in line:
             in_ifdef = True
             in_ifndef = False
+            in_dd_block = False
         elif _is_guard_close(line):
             in_ifndef = False
             in_ifdef = False
+            in_dd_block = False
             continue
 
         if in_ifndef:
@@ -317,13 +322,13 @@ def check_format_correctness(lines: List[str], path: str) -> List[Issue]:
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="error", code="E004",
-                    message="GitHub (ifdef) section uses \\[...\\]. Use $$...$$ or ```math instead.",
+                    message="GitHub (ifdef) section uses \\[...\\]. Use ```math (preferred) or $$...$$ instead.",
                 ))
             if "stem:[" in line or "latexmath:[" in line:
                 CHECKS_RUN.add("E004")
                 issues.append(Issue(
                     line=i, severity="warning", code="E004",
-                    message="GitHub (ifdef) section uses AsciiDoc math syntax. Use $$...$$ or $...$ instead.",
+                    message="GitHub (ifdef) section uses AsciiDoc math syntax. Use ```math / $...$ instead.",
                 ))
 
             # E006: $...$ 前紧贴中文字符/中文标点，GitHub MathJax 渲染失败
@@ -343,6 +348,28 @@ def check_format_correctness(lines: List[str], path: str) -> List[Issue]:
                             line=i, severity="error", code="E006",
                             message=f"'{match}' 前紧贴中文字符 '{prev}'，GitHub MathJax 无法渲染。请在 '$' 前加空格。",
                         ))
+
+            stripped = line.strip()
+            if in_dd_block:
+                if stripped == "$$":
+                    in_dd_block = False
+            elif stripped == "$$":
+                CHECKS_RUN.add("W003")
+                issues.append(Issue(
+                    line=i, severity="warning", code="W003",
+                    message="GitHub (ifdef) block math uses $$. Prefer ```math "
+                            "(immune to Markdown preprocessing).",
+                    fix="math-fence",
+                ))
+                in_dd_block = True
+            elif re.search(r"\$\$[^$\n]+\$\$", line):
+                CHECKS_RUN.add("W003")
+                issues.append(Issue(
+                    line=i, severity="warning", code="W003",
+                    message="GitHub (ifdef) block math uses $$...$$. Prefer ```math "
+                            "(immune to Markdown preprocessing).",
+                    fix="math-fence",
+                ))
 
     return issues
 
@@ -611,7 +638,9 @@ def fix_stem_bare_blocks(content: str) -> str:
                     result.append(f"{body_indent}++++\n")
                     result.append(f"{body_indent}endif::[]\n")
                     result.append(f"{body_indent}ifdef::env-github[]\n")
-                    result.append(f"{body_indent}$${body_text.strip()}$$\n")
+                    result.append(f"{body_indent}```math\n")
+                    result.append(f"{body_indent}{body_text.strip()}\n")
+                    result.append(f"{body_indent}```\n")
                     result.append(f"{body_indent}endif::[]\n")
                 i = end + 1
                 continue
@@ -620,10 +649,82 @@ def fix_stem_bare_blocks(content: str) -> str:
     return "".join(result)
 
 
+_SINGLE_DD = re.compile(r"^(\s*)\$\$(.+)\$\$(\s*)$")
+
+
+def fix_dollar_dollar_to_math_fence(content: str) -> str:
+    """Convert $$ block math to ```math fences inside ifdef::env-github[] only."""
+    lines = content.splitlines(keepends=True)
+    result: List[str] = []
+    in_ifdef = False
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+        if "ifdef::env-github[]" in line:
+            in_ifdef = True
+            result.append(line)
+            i += 1
+            continue
+        if "ifndef::env-github[]" in line:
+            in_ifdef = False
+            result.append(line)
+            i += 1
+            continue
+        if _is_guard_close(line):
+            in_ifdef = False
+            result.append(line)
+            i += 1
+            continue
+
+        if in_ifdef:
+            stripped = line.strip()
+            single = _SINGLE_DD.match(line.rstrip("\r\n"))
+            if single and stripped != "$$":
+                indent, inner = single.group(1), single.group(2).strip()
+                if "$$" not in inner:
+                    result.append(f"{indent}```math\n")
+                    result.append(f"{indent}{inner}\n")
+                    result.append(f"{indent}```\n")
+                    i += 1
+                    continue
+            if stripped == "$$":
+                indent_m = re.match(r"^(\s*)", line)
+                indent = indent_m.group(1) if indent_m else ""
+                body: List[str] = []
+                j = i + 1
+                found = False
+                while j < len(lines):
+                    nxt = lines[j]
+                    if (
+                        "ifdef::env-github[]" in nxt
+                        or "ifndef::env-github[]" in nxt
+                        or _is_guard_close(nxt)
+                    ):
+                        break
+                    if nxt.strip() == "$$":
+                        found = True
+                        break
+                    body.append(nxt)
+                    j += 1
+                if found:
+                    result.append(f"{indent}```math\n")
+                    result.extend(body)
+                    result.append(f"{indent}```\n")
+                    i = j + 1
+                    continue
+
+        result.append(line)
+        i += 1
+
+    return "".join(result)
+
+
 def apply_auto_fixes(content: str) -> Tuple[str, bool]:
     new_content = fix_latexmath_in_guard(content)
     new_content = fix_banned_source_math(new_content)
     new_content = fix_stem_bare_blocks(new_content)
+    new_content = fix_dollar_dollar_to_math_fence(new_content)
     return new_content, new_content != content
 
 

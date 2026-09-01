@@ -15,11 +15,11 @@
   | Scope | Non-GitHub (`ifndef::env-github`) | GitHub (`ifdef::env-github`) |
   |-------|-----------------------------------|------------------------------|
   | Inline | `\(...\)`, `stem:[...]`, or `latexmath:[...]` | `$...$` |
-  | Block  | `\[...\]`, `[stem]++++...++++`, or `[latexmath]++++...++++` | `$$...$$` or `` ```math ... ``` `` |
+  | Block  | `\[...\]`, `[stem]++++...++++`, or `[latexmath]++++...++++` | `` ```math ... ``` `` or `$$...$$` |
 
-  > **Note:** The `[latexmath]++++...++++` block form and `` ```math ... ``` `` block form are not recommended — prefer `[stem]++++...++++` and `$$...$$` respectively.
+  > **Note:** Prefer `[stem]++++...++++` over `[latexmath]++++...++++`. On GitHub, prefer `` ```math ... ``` `` over `$$...$$`: fenced math is not rewritten by the Markdown preprocessor, so it avoids known `$$` failures (multiple `_{...}` subscripts, backslash sanitizing, CJK touching the delimiter). `$$...$$` remains a legal fallback.
   >
-  > **Important:** Every math expression must be placed inside an `ifndef`/`ifdef` guard pair — use AsciiDoc syntax (`\(...\)`, `\[...\]`, `stem:[...]`, `[stem]++++`) inside `ifndef::env-github[]` and Markdown syntax (`$...$`, `$$...$$`) inside `ifdef::env-github[]`. Putting the wrong syntax in the wrong guard (e.g. `$...$` inside `ifndef`, or `\(...\)` inside `ifdef`) defeats the purpose. Expressions found outside any guard are also reported.
+  > **Important:** Every math expression must be placed inside an `ifndef`/`ifdef` guard pair — use AsciiDoc syntax (`\(...\)`, `\[...\]`, `stem:[...]`, `[stem]++++`) inside `ifndef::env-github[]` and Markdown syntax (`$...$`, `` ```math ``) inside `ifdef::env-github[]`. Putting the wrong syntax in the wrong guard (e.g. `$...$` inside `ifndef`, or `\(...\)` inside `ifdef`) defeats the purpose. Expressions found outside any guard are also reported.
   >
   > Do NOT use `[source, math]` under any format.
   >
