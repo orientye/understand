@@ -1,0 +1,15 @@
+---
+description: Project docs style and Windows/Git Bash tool-call JSON truncation
+alwaysApply: true
+---
+
+# Project and Windows tool calls
+
+- Plain text docs only — no build system, no tests, no package manager.
+- Canonical agent notes for this repo also live in `.claude/CLAUDE.md`. Keep Cursor rules in sync when that file changes.
+
+## JSON truncation (Windows / Git Bash)
+
+If a Bash / Read / Edit / Write call fails with `InputValidationError: ... could not be parsed as JSON` and `You sent (first N of M bytes)` shows N < M, the argument was truncated in transit. This happens when the argument contains Chinese or exceeds ~200 bytes.
+
+Do not retry with different quoting, heredoc, or `python -c`. Write a `.py` file with `io.open(path, encoding="utf-8")` and run `python script.py` as a pure-ASCII one-liner. If a Bash argument has Chinese or is longer than ~200 bytes, put it in a file.

@@ -1,0 +1,20 @@
+---
+description: Dual-format math in .asc files (Unicode first, then ifndef/ifdef)
+globs: "**/*.asc"
+alwaysApply: false
+---
+
+# AsciiDoc math
+
+Prefer Unicode over formal math: `ᵀ` `√` `₀₁₂₃` `⁰¹²³` `∑` `≠` `≤` `→` `∈`. Use dual-format guards only when Unicode cannot express the notation.
+
+| Scope | `ifndef::env-github` (AsciiDoc) | `ifdef::env-github` (GitHub) |
+|-------|---------------------------------|------------------------------|
+| Inline | `\(...\)`, `stem:[...]` | `$...$` |
+| Block | `[stem]++++...++++` | `` ```math ... ``` `` (preferred) or `$$...$$` |
+
+- Prefer `[stem]++++` over `[latexmath]++++`. Prefer `` ```math `` over `$$` (fenced math is not rewritten by GitHub's Markdown preprocessor).
+- Every math expression must sit in an `ifndef` / `ifdef` pair. Wrong syntax in the wrong guard, or math outside guards, is an error.
+- Do not use `[source, math]`.
+- In `ifdef`, `$...$` must not touch CJK: put a space between `$` and any adjacent Chinese character or punctuation.
+- After editing math, run: `python tools/check-math-expression.py <file.asc>`
