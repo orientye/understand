@@ -1,0 +1,2645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor.js 4.0.6">
+<meta name="author" content="orient">
+<title>reinforcement-learning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CNoto+Sans+Mono:400,700">
+<style>
+/*! Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
+/* Uncomment the following line when using as a custom stylesheet */
+/* @import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700"; */
+html{font-family:sans-serif;-webkit-text-size-adjust:100%}
+a{background:none}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+b,strong{font-weight:bold}
+abbr{font-size:.9em}
+abbr[title]{cursor:help;border-bottom:1px dotted #dddddf;text-decoration:none}
+dfn{font-style:italic}
+hr{height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+audio,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type=button],input[type=reset],input[type=submit]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type=checkbox],input[type=radio]{padding:0}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,::before,::after{box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;line-height:1;position:relative;cursor:auto;-moz-tab-size:4;-o-tab-size:4;tab-size:4;word-wrap:anywhere;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+img,object,svg{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:0}
+p{line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #dddddf;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ul.square{list-style-type:square}
+ul.circle ul:not([class]),ul.disc ul:not([class]),ul.square ul:not([class]){list-style:inherit}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+  h1{font-size:2.75em}
+  h2{font-size:2.3125em}
+  h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+  h4{font-size:1.4375em}}
+table{background:#fff;margin-bottom:1.25em;border:1px solid #dedede;word-wrap:normal}
+table thead,table tfoot{background:#f7f8f7}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt{background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.center{margin-left:auto;margin-right:auto}
+.stretch{width:100%}
+.clearfix::before,.clearfix::after,.float-group::before,.float-group::after{content:" ";display:table}
+.clearfix::after,.float-group::after{clear:both}
+:not(pre).nobreak{word-wrap:normal}
+:not(pre).nowrap{white-space:nowrap}
+:not(pre).pre-wrap{white-space:pre-wrap}
+:not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
+pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
+pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
+pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
+em em{font-style:normal}
+strong strong{font-weight:400}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;display:inline-block;color:rgba(0,0,0,.8);font-size:.65em;line-height:1.45;background:#f7f7f7;border:1px solid #ccc;border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.2),inset 0 0 0 .1em #fff;margin:0 .15em;padding:.2em .5em;vertical-align:middle;position:relative;top:-.1em;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menuref{color:#000}
+.menuseq b:not(.caret),.menuref{font-weight:inherit}
+.menuseq{word-spacing:-.02em}
+.menuseq b.caret{font-size:1.25em;line-height:.8}
+.menuseq i.caret{font-weight:bold;text-align:center;width:.45em}
+b.button::before,b.button::after{position:relative;top:-1px;font-weight:400}
+b.button::before{content:"[";padding:0 3px 0 2px}
+b.button::after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin:0 auto;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header::before,#header::after,#content::before,#content::after,#footnotes::before,#footnotes::after,#footer::before,#footer::after{content:" ";display:table}
+#header::after,#content::after,#footnotes::after,#footer::after{clear:both}
+#content{margin-top:1.25em}
+#content::before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
+#header>h1:only-child{border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span::before{content:"\00a0\2013\00a0"}
+#header .details br+span.author::before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark::before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber::after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #dddddf;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #e7e7e9;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc li{line-height:1.3334;margin-top:.3334em}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media screen and (min-width:768px){#toctitle{font-size:1.375em}
+  body.toc2{padding-left:15em;padding-right:0}
+  body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+  #toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+  #toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
+  #toc.toc2>ul{font-size:.9em;margin-bottom:0}
+  #toc.toc2 ul ul{margin-left:0;padding-left:1em}
+  #toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+  body.toc2.toc-right{padding-left:0;padding-right:15em}
+  body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #e7e7e9;left:auto;right:0}}
+@media screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+  #toc.toc2{width:20em}
+  #toc.toc2 #toctitle{font-size:1.375em}
+  #toc.toc2>ul{font-size:.95em}
+  #toc.toc2 ul ul{padding-left:1.25em}
+  body.toc2.toc-right{padding-left:0;padding-right:20em}}
+#content #toc{border:1px solid #e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:none;background:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:hsla(0,0%,100%,.8);line-height:1.44}
+#content{margin-bottom:.625em}
+.sect1{padding-bottom:.625em}
+@media screen and (min-width:768px){#content{margin-bottom:1.25em}
+  .sect1{padding-bottom:1.25em}}
+.sect1:last-child{padding-bottom:0}
+.sect1+.sect1{border-top:1px solid #e7e7e9}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor::before,h2>a.anchor::before,h3>a.anchor::before,#toctitle>a.anchor::before,.sidebarblock>.content>.title>a.anchor::before,h4>a.anchor::before,h5>a.anchor::before,h6>a.anchor::before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+details,.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+details{margin-left:1.25rem}
+details>summary{cursor:pointer;display:block;position:relative;line-height:1.6;margin-bottom:.625rem;outline:none;-webkit-tap-highlight-color:transparent}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"";border:solid transparent;border-left:solid;border-width:.3em 0 .3em .5em;position:absolute;top:.5em;left:-1.25rem;transform:translateX(15%)}
+details[open]>summary::before{border:solid transparent;border-top:solid;border-width:.5em .3em 0;transform:translateY(15%)}
+details>summary::after{content:"";width:1.25rem;height:1em;position:absolute;top:.3em;left:-1.25rem}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
+.paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:none}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border:1px solid #e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;border-radius:4px}
+.sidebarblock{border:1px solid #dbdbd6;margin-bottom:1.25em;padding:1.25em;background:#f3f3f2;border-radius:4px}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:first-child,.sidebarblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child,.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock>.content>pre{border-radius:4px;overflow-x:auto;padding:1em;font-size:.8125em}
+@media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
+@media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
+.literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class=highlight],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
+.literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
+.listingblock>.content{position:relative}
+.listingblock pre>code{display:block}
+.listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
+.listingblock:hover code[data-lang]::before{display:block}
+.listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
+.listingblock.terminal pre .command:not([data-prompt])::before{content:"$"}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.prettyprint{background:#f7f7f8}
+pre.prettyprint .linenums{line-height:1.45;margin-left:2em}
+pre.prettyprint li{background:none;list-style-type:inherit;padding-left:0}
+pre.prettyprint li code[data-lang]::before{opacity:1}
+pre.prettyprint li:not(:first-child) code[data-lang]::before{display:none}
+table.linenotable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.linenotable td[class]{color:inherit;vertical-align:top;padding:0;line-height:inherit;white-space:normal}
+table.linenotable td.code{padding-left:.75em}
+table.linenotable td.linenos,pre.pygments .linenos{border-right:1px solid;opacity:.35;padding-right:.5em;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+pre.pygments span.linenos{display:inline-block;margin-right:.75em}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock:not(.excerpt)>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote::before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.75em;margin-right:.5ex;text-align:right}
+.verseblock{margin:0 1em 1.25em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans-serif;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.025em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract blockquote::before,.quoteblock.excerpt blockquote::before,.quoteblock .quoteblock blockquote::before{display:none}
+.quoteblock.abstract blockquote,.quoteblock.abstract p,.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{line-height:1.6;word-spacing:0}
+.quoteblock.abstract{margin:0 1em 1.25em;display:block}
+.quoteblock.abstract>.title{margin:0 0 .375em;font-size:1.15em;text-align:center}
+.quoteblock.excerpt>blockquote,.quoteblock .quoteblock{padding:0 0 .25em 1em;border-left:.25em solid #dddddf}
+.quoteblock.excerpt,.quoteblock .quoteblock{margin-left:0}
+.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{color:inherit;font-size:1.0625rem}
+.quoteblock.excerpt .attribution,.quoteblock .quoteblock .attribution{color:inherit;font-size:.85rem;text-align:left;margin-right:0}
+p.tableblock:last-child{margin-bottom:0}
+td.tableblock>.content{margin-bottom:1.25em;word-wrap:anywhere}
+td.tableblock>.content>:last-child{margin-bottom:-1.25em}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all>*>tr>*{border-width:1px}
+table.grid-cols>*>tr>*{border-width:0 1px}
+table.grid-rows>*>tr>*{border-width:1px 0}
+table.frame-all{border-width:1px}
+table.frame-ends{border-width:1px 0}
+table.frame-sides{border-width:0 1px}
+table.frame-none>colgroup+*>:first-child>*,table.frame-sides>colgroup+*>:first-child>*{border-top-width:0}
+table.frame-none>:last-child>:last-child>*,table.frame-sides>:last-child>:last-child>*{border-bottom-width:0}
+table.frame-none>*>tr>:first-child,table.frame-ends>*>tr>:first-child{border-left-width:0}
+table.frame-none>*>tr>:last-child,table.frame-ends>*>tr>:last-child{border-right-width:0}
+table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-even>*>tr:nth-of-type(even),table.stripes-hover>*>tr:hover{background:#f8f8f7}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.checklist,ul.none,ol.none,ul.no-bullet,ol.no-bullet,ol.unnumbered,ul.unstyled,ol.unstyled{list-style-type:none}
+ul.no-bullet,ol.no-bullet,ol.unnumbered{margin-left:.625em}
+ul.unstyled,ol.unstyled{margin-left:0}
+li>p:empty:only-child::before{content:"";display:inline-block}
+ul.checklist>li>p:first-child{margin-left:-1em}
+ul.checklist>li>p:first-child>.fa-square-o:first-child,ul.checklist>li>p:first-child>.fa-check-square-o:first-child{width:1.25em;font-size:.8em;position:relative;bottom:.125em}
+ul.checklist>li>p:first-child>input[type=checkbox]:first-child{margin-right:.25em}
+ul.inline{display:flex;flex-flow:row wrap;list-style:none;margin:0 0 .625em -1.25em}
+ul.inline>li{margin-left:1.25em}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1,td.hdlist2{vertical-align:top;padding:0 .625em}
+td.hdlist1{font-weight:bold;padding-bottom:1.25em}
+td.hdlist2{word-wrap:anywhere}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist td:not([class]):first-child{padding:.4em .75em 0;line-height:1;vertical-align:top}
+.colist td:not([class]):first-child img{max-width:none}
+.colist td:not([class]):last-child{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:4px solid #fff;box-shadow:0 0 0 1px #ddd}
+.imageblock.left{margin:.25em .625em 1.25em 0}
+.imageblock.right{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none;display:inline-block}
+a.image object{pointer-events:none}
+sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
+sup.footnote a,sup.footnoteref a{text-decoration:none}
+sup.footnote a:active,sup.footnoteref a:active,#footnotes .footnote a:first-of-type:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
+#footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none;margin-left:-1.05em}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background:#00fafa}
+.black{color:#000}
+.black-background{background:#000}
+.blue{color:#0000bf}
+.blue-background{background:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background:#fa00fa}
+.gray{color:#606060}
+.gray-background{background:#7d7d7d}
+.green{color:#006000}
+.green-background{background:#007d00}
+.lime{color:#00bf00}
+.lime-background{background:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background:#7d0000}
+.navy{color:#000060}
+.navy-background{background:#00007d}
+.olive{color:#606000}
+.olive-background{background:#7d7d00}
+.purple{color:#600060}
+.purple-background{background:#7d007d}
+.red{color:#bf0000}
+.red-background{background:#fa0000}
+.silver{color:#909090}
+.silver-background{background:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background:#fafa00}
+span.icon>.fa{cursor:default}
+a span.icon>.fa{cursor:inherit}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note::before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip::before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning::before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution::before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important::before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background:rgba(0,0,0,.8);border-radius:50%;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]::after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
+h1,h2,p,td.content,span.alt,summary{letter-spacing:-.01em}
+p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content,td.hdlist1,span.alt,summary{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background:#fffef7;border-color:#e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@page{margin:1.25cm .75cm}
+@media print{*{box-shadow:none!important;text-shadow:none!important}
+  html{font-size:80%}
+  a{color:inherit!important;text-decoration:underline!important}
+  a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+  a[href^="http:"]:not(.bare)::after,a[href^="https:"]:not(.bare)::after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+  abbr[title]{border-bottom:1px dotted}
+  abbr[title]::after{content:" (" attr(title) ")"}
+  pre,blockquote,tr,img,object,svg{page-break-inside:avoid}
+  thead{display:table-header-group}
+  svg{max-width:100%}
+  p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+  h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+  #header,#content,#footnotes,#footer{max-width:none}
+  #toc,.sidebarblock,.exampleblock>.content{background:none!important}
+  #toc{border-bottom:1px solid #dddddf!important;padding-bottom:0!important}
+  body.book #header{text-align:center}
+  body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em}
+  body.book #header .details{border:0!important;display:block;padding:0!important}
+  body.book #header .details span:first-child{margin-left:0!important}
+  body.book #header .details br{display:block}
+  body.book #header .details br+span::before{content:none!important}
+  body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+  body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+  .listingblock code[data-lang]::before{display:block}
+  #footer{padding:0 .9375em}
+  .hide-on-print{display:none!important}
+  .print-only{display:block!important}
+  .hide-for-print{display:none!important}
+  .show-for-print{display:inherit!important}}
+@media amzn-kf8,print{#header>h1:first-child{margin-top:1.25rem}
+  .sect1{padding:0!important}
+  .sect1+.sect1{border:0}
+  #footer{background:none}
+  #footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
+@media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
+</head>
+<body class="article">
+<div id="header">
+<h1>reinforcement-learning</h1>
+<div class="details">
+<span id="author" class="author">orient</span><br>
+<span id="revnumber">version 0.0.1</span>
+</div>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_概念">1. 概念</a></li>
+<li><a href="#_马尔可夫决策过程markov_decision_process_mdp">2. 马尔可夫决策过程(Markov Decision Process, MDP)</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_2">2.1. 概念</a></li>
+<li><a href="#_key_elements_of_mdp">2.2. Key elements of MDP</a>
+<ul class="sectlevel3">
+<li><a href="#_sets">2.2.1. Sets</a></li>
+<li><a href="#_probability_distribution">2.2.2. Probability distribution</a></li>
+<li><a href="#_policy">2.2.3. Policy</a></li>
+<li><a href="#_markov_property_memoryless_property">2.2.4. Markov property: memoryless property</a></li>
+</ul>
+</li>
+<li><a href="#_马尔可夫性质">2.3. 马尔可夫性质</a></li>
+<li><a href="#_马尔可夫奖励过程">2.4. 马尔可夫奖励过程</a></li>
+<li><a href="#_马尔可夫决策过程">2.5. 马尔可夫决策过程</a></li>
+<li><a href="#_参考">2.6. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_贝尔曼公式贝尔曼方程bellman_equation">3. 贝尔曼公式/贝尔曼方程(Bellman Equation)</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_3">3.1. 概念</a></li>
+<li><a href="#_return回报">3.2. return(回报)</a></li>
+<li><a href="#_state_value">3.3. state value</a></li>
+<li><a href="#_推导derivation">3.4. 推导(Derivation)</a></li>
+</ul>
+</li>
+<li><a href="#_贝尔曼最优公式bellman_optimality_equation">4. 贝尔曼最优公式(Bellman Optimality Equation)</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_4">4.1. 概念</a></li>
+</ul>
+</li>
+<li><a href="#_动态规划法">5. 动态规划法</a>
+<ul class="sectlevel2">
+<li><a href="#_与马尔可夫的关系">5.1. 与马尔可夫的关系</a></li>
+<li><a href="#_前提与适用">5.2. 前提与适用</a></li>
+<li><a href="#_广义策略迭代gpi">5.3. 广义策略迭代(GPI)</a></li>
+<li><a href="#_三类核心算法">5.4. 三类核心算法</a></li>
+<li><a href="#_与_mc_td_的对照">5.5. 与 MC / TD 的对照</a></li>
+<li><a href="#_参考_2">5.6. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_蒙特卡洛方法">6. 蒙特卡洛方法</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_5">6.1. 概念</a></li>
+<li><a href="#_前提与适用_2">6.2. 前提与适用</a></li>
+<li><a href="#_预测策略评估">6.3. 预测（策略评估）</a></li>
+<li><a href="#_首次访问与每次访问">6.4. 首次访问与每次访问</a></li>
+<li><a href="#_控制gpi">6.5. 控制（GPI）</a>
+<ul class="sectlevel3">
+<li><a href="#_算法步骤表格型首次访问在策略">6.5.1. 算法步骤（表格型，首次访问、在策略）</a></li>
+</ul>
+</li>
+<li><a href="#_离策略与重要性采样">6.6. 离策略与重要性采样</a></li>
+<li><a href="#_直觉例子二十一点_blackjack">6.7. 直觉例子（二十一点 Blackjack）</a></li>
+<li><a href="#_与_dp_td_的对照">6.8. 与 DP / TD 的对照</a></li>
+<li><a href="#_优点与局限">6.9. 优点与局限</a></li>
+<li><a href="#_参考_3">6.10. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_随机近似与随机梯度下降">7. 随机近似与随机梯度下降</a></li>
+<li><a href="#_时序差分方法temporal_difference_learning">8. 时序差分方法(Temporal Difference Learning)</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_6">8.1. 概念</a></li>
+<li><a href="#_q_learning">8.2. Q-Learning</a>
+<ul class="sectlevel3">
+<li><a href="#_概念_7">8.2.1. 概念</a></li>
+<li><a href="#_更新规则">8.2.2. 更新规则</a></li>
+<li><a href="#_算法步骤表格型">8.2.3. 算法步骤（表格型）</a></li>
+<li><a href="#_直觉例子悬崖漫步_cliff_walking">8.2.4. 直觉例子（悬崖漫步 Cliff Walking）</a></li>
+<li><a href="#_优点与局限_2">8.2.5. 优点与局限</a></li>
+<li><a href="#_参考_4">8.2.6. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_sarsa">8.3. SARSA</a>
+<ul class="sectlevel3">
+<li><a href="#_概念_8">8.3.1. 概念</a></li>
+<li><a href="#_更新规则_2">8.3.2. 更新规则</a></li>
+<li><a href="#_算法步骤表格型_2">8.3.3. 算法步骤（表格型）</a></li>
+<li><a href="#_与_q_learning_对比">8.3.4. 与 Q-Learning 对比</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_值函数近似">9. 值函数近似</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_9">9.1. 概念</a></li>
+<li><a href="#_deadly_triad">9.2. deadly triad</a></li>
+</ul>
+</li>
+<li><a href="#_dqn深度q网络deep_q_network">10. DQN(深度Q网络，Deep Q-Network)</a>
+<ul class="sectlevel2">
+<li><a href="#_核心思想">10.1. 核心思想</a></li>
+<li><a href="#_核心技巧">10.2. 核心技巧</a></li>
+<li><a href="#_算法步骤">10.3. 算法步骤</a></li>
+<li><a href="#_变种">10.4. 变种</a>
+<ul class="sectlevel3">
+<li><a href="#_double_dqn">10.4.1. Double DQN</a></li>
+<li><a href="#_dueling_dqn">10.4.2. Dueling DQN</a></li>
+<li><a href="#_prioritized_replay">10.4.3. Prioritized Replay</a></li>
+</ul>
+</li>
+<li><a href="#_参考_5">10.5. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_策略梯度方法">11. 策略梯度方法</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_10">11.1. 概念</a></li>
+<li><a href="#_reinforce">11.2. REINFORCE</a></li>
+</ul>
+</li>
+<li><a href="#_actor_critic方法">12. Actor-Critic方法</a>
+<ul class="sectlevel2">
+<li><a href="#_概念_11">12.1. 概念</a></li>
+<li><a href="#_gae广义优势估计generalized_advantage_estimation">12.2. GAE（广义优势估计，Generalized Advantage Estimation）</a></li>
+<li><a href="#_代表算法">12.3. 代表算法</a></li>
+</ul>
+</li>
+<li><a href="#_ppo近端策略优化proximal_policy_optimization">13. PPO（近端策略优化，Proximal Policy Optimization）</a>
+<ul class="sectlevel2">
+<li><a href="#_核心思想_2">13.1. 核心思想</a></li>
+<li><a href="#_核心技巧_2">13.2. 核心技巧</a></li>
+<li><a href="#_算法步骤_2">13.3. 算法步骤</a></li>
+<li><a href="#_与相邻算法">13.4. 与相邻算法</a></li>
+<li><a href="#_参考_6">13.5. 参考</a></li>
+</ul>
+</li>
+<li><a href="#_project">14. project</a></li>
+<li><a href="#_参考_7">15. 参考</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_概念">1. 概念</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>reinforcement-learning<br>
+learning through experience/data to make good decisions under uncertainty<br>
+在强化学习问题中，智能体(agent)在一系列的时间步骤上与环境交互。在每个特定时间点，智能体从环境接收一些观察(observation)，并且必须选择一个动作(action)，然后通过某种机制(有时称为执行器)将其传输回环境，最后智能体从环境中获得奖励(reward)。此后新一轮循环开始，智能体接收后续观察，并选择后续操作，依此类推。</p>
+</li>
+<li>
+<p>Two Problem Categories Where RL is Particularly Powerful<br>
+1️⃣ No examples of desired behavior: e.g. because the goal is to go beyond human performance or there is no existing data for a task.<br>
+2️⃣ Enormous search or optimization problem with delayed outcomes.</p>
+</li>
+<li>
+<p>vs. 深度学习<br>
+深度学习是函数近似工具（学表示）；强化学习是序贯决策问题（学策略）。<br>
+二者不断在融合。<br>
+深度学习常见于感知（图像、语音、文本）；<br>
+强化学习常见于决策与控制（游戏、机器人、资源调度）。<br>
+大模型对齐（RLHF/DPO/GRPO）把 RL 用在语言模型上。</p>
+</li>
+<li>
+<p>发展历史</p>
+<div class="ulist">
+<ul>
+<li>
+<p>1970s–1980s<br>
+Werbos 等人的自适应动态规划(Adaptive Dynamic Programming)<br>
+Barto &amp; Sutton 的 actor-critic<br>
+Sutton 提出时序差分 TD（1988）</p>
+</li>
+<li>
+<p>1989–1990s<br>
+Watkins 提出 Q-learning（1989；与 Dayan 的论文 1992）<br>
+Williams 提出 REINFORCE（1992）<br>
+Tesauro 的 TD-Gammon（1992）<br>
+Sutton &amp; Barto《Reinforcement Learning: An Introduction》第一版（1998）</p>
+</li>
+<li>
+<p>2013 年以来 深度强化学习<br>
+2013/2015 DQN（DeepMind，Atari）<br>
+2016 AlphaGo（Nature；对 Fan Hui 在 2015 末）<br>
+2017 PPO、AlphaZero<br>
+2018 SAC<br>
+2019 MuZero</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Reinforcement Learning (Generally) Involves</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Optimization 优化<br>
+强化学习的目标是找到最优策略（policy），使得累积奖励最大化，这本质上是一个优化问题。<br>
+一般算法：定义一个目标函数，通过策略梯度（Policy Gradient）或价值迭代（Value Iteration），利用梯度下降/上升来不断更新策略参数。</p>
+</li>
+<li>
+<p>Delayed consequences 延迟后果<br>
+当前的动作可能不会立即产生奖励，而是影响未来的状态和回报（即信用分配问题，credit assignment problem）。<br>
+一般算法：引入折扣因子 γ（Discount Factor）来计算未来长期回报（Return），并使用时序差分（Temporal Difference, TD）误差或优势函数（Advantage Function）来把未来的奖励“倒扣”或“归功”给当前的动作。</p>
+</li>
+<li>
+<p>Exploration 探索<br>
+智能体需要在利用已知的好动作（exploitation）和尝试新动作以获取更多信息（exploration）之间做权衡，即探索-利用困境（exploration-exploitation dilemma）。<br>
+一般算法：简单的有 ε-greedy 策略（以一定概率随机乱走），复杂一些的有 熵正则化（Entropy Regularization）（鼓励策略保持多样性）或 好奇心机制/内在奖励（Intrinsic Reward）（对没去过的状态给予额外奖励）。</p>
+</li>
+<li>
+<p>Generalization 泛化<br>
+智能体需要将有限的经验推广到未见过的状态或相似情境中，尤其是在大规模或连续状态空间中（通常需要函数近似）。<br>
+表格法对每个状态独立记忆、不泛化；状态多到存不下或访不全时，才必须靠函数近似跨状态推广。<br>
+一般手段：用函数近似器（Function Approximator）共享参数/特征，把已访状态上的价值或策略估计推广到相近、未见过的状态（注意：表示光滑 ≠ 相近状态必须输出相近动作）。形式不限于 DNN——线性 FA、tile coding、RBF 等早已存在，深度网络只是高维观测下的主流选择。过度泛化可能混淆策略上关键的不同状态（state aliasing）；与自举、离策略结合时还可能触发 deadly triad 不稳定。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>强化学习的一些特征</p>
+<div class="ulist">
+<ul>
+<li>
+<p>强化学习会试错探索，它通过探索环境来获取对环境的理解。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>强化学习智能体会从环境里面获得延迟的奖励。</p>
+</li>
+<li>
+<p>在强化学习的训练过程中，时间非常重要。因为得到的是有时间关联的数据（sequential data），而不是独立同分布的数据。在机器学习中，如果观测数据有非常强的关联，会使得训练非常不稳定。</p>
+</li>
+<li>
+<p>智能体的动作会影响它随后得到的数据。如果在训练过程中，智能体不能保持稳定，就会使采集到的数据非常糟糕。通过数据来训练智能体，如果数据有问题，整个训练过程就会失败。因此在强化学习里面一个非常重要的问题就是，怎么让智能体的动作一直稳定地提升。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>MDP（及 POMDP）、上下文赌博机、多臂赌博机<br>
+当观察足以构成马尔可夫状态（下一状态与奖励只依赖当前状态和动作）时，强化学习问题可建成马尔可夫决策过程(Markov Decision Process, MDP)。完全可观测只是常见前提：单帧马里奥画面全看见了，仍缺速度，仍是部分可观测马尔可夫决策过程(Partially Observable Markov Decision Process, POMDP)。<br>
+当每一步都有上下文（状态），但动作不影响下一上下文、也没有跨步信用分配时，称该问题为上下文赌博机(contextual bandit)。<br>
+例：新闻推荐。来了一个用户（上下文：年龄、兴趣、时段），选一篇标题给他看，立刻得到点或不点；下一个用户从哪来、长什么样，与刚才点了哪篇无关。<br>
+当没有状态、只有一组最初未知回报的可用动作时，这个问题就是经典的多臂赌博机(multi-armed bandit)。<br>
+例：一排老虎机，拉哪根杆事先不知道谁吐币多。没有「当前局面」，只有 k 个动作；每次拉完立刻出分，下一把还是同一排机，不因上次拉了哪根而换环境。</p>
+</li>
+<li>
+<p>Q: 对于路径规划问题，A*算法与强化学习有哪些区别？<br>
+| 维度 | 强化学习 (RL) | A* 算法 |<br>
+| 核心目标 | 学一个通用策略，适应动态/不确定环境 | 找一条单次(近似)最优路径（静态、全图已知） |<br>
+| 工作方式 | 试错交互，靠奖励信号反馈 | 靠启发式函数 + 实际代价，全图已知 |<br>
+| 计算开销 | 训练慢，但执行快（查表/网络前向） | 每次规划都重算，规模大时指数增长 |<br>
+| 最优性保证 | 近似最优（无严格保证） | 树搜索：admissible 即可；图搜索：需 consistent（或 reopen 机制）才保证全局最优 |</p>
+</li>
+<li>
+<p>Action Space<br>
+What can your agent do? (discrete choices, continuous values, etc.)<br>
+在给定的环境中，有效动作的集合经常被称为动作空间（action space）。像围棋这样的环境有离散动作空间（discrete action space），在这个动作空间里，智能体的动作数量是有限的。在其他环境，比如在物理世界中控制一个智能体，在这个环境中就有连续动作空间（continuous action space）。<br>
+走迷宫机器人如果只有往东、往南、往西、往北这 4 种移动方式，则其动作空间为离散动作空间；<br>
+如果机器人可以向 360 度中的任意角度进行移动，则其动作空间为连续动作空间。</p>
+</li>
+<li>
+<p>Observation Space<br>
+What can your agent see? (images, numbers, structured data, etc.)<br>
+观察是智能体实际看到的输入；状态是对环境的充分描述。完全可观测时观察 ≈ 状态；部分可观测（POMDP）时观察只是状态的残缺投影，需要帧堆叠、RNN 或信念状态补信息。</p>
+</li>
+<li>
+<p>return与reward的区别<br>
+Gₜ = Rₜ₊₁ + γGₜ₊₁ 或者写成 Gₜ = Rₜ₊₁ + γRₜ₊₂ + γ²Rₜ₊₃ + ⋯</p>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>reward（奖励）</strong>：通常记为 Rₜ 或 Rₜ₊₁，是某一时刻环境反馈的即时奖励。</p>
+</li>
+<li>
+<p><strong>return（回报）</strong>：通常记为 Gₜ，是从时刻 t 开始往后得到的折扣累计奖励。</p>
+</li>
+<li>
+<p><strong>discount（折扣因子）</strong>：通常记为 γ，0 ≤ γ ≤ 1。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>稠密奖励(Dense Reward)与稀疏奖励(Sparse Reward)<br>
+| 特性 | 稠密奖励 (Dense Reward) | 稀疏奖励 (Sparse Reward) |<br>
+| 反馈频率 | 几乎每步都有可学习的信号 | 只有成功/失败等关键事件才给 |<br>
+| 典型代表 | CartPole（每活一步 +1） | 到达目标才 +1，此前全是 0 |<br>
+| 训练难度 | 较低，走一步能修正一步 | 高，容易长时间没有任何反馈 |</p>
+</li>
+<li>
+<p>挑战<br>
+样本效率、探索与利用、部分可观测、奖励设计（稀疏/奖励黑客）、以及函数近似下的稳定性（deadly triad）。<br>
+Q: 强化学习相比深度学习的复杂性体现在哪里？<br>
+监督学习的标签 y 是固定的。TD / Q-learning 用贝尔曼自举：今天的 Q 估计会变成明天的训练目标，优化地形在动。除了表格型等特例，深度 RL 很少有全局收敛保证。工程体量角度：现代 LLM 训练是大规模系统工程；AlphaGo 的难点更多在搜索与自我对弈，网络本身并不大。</p>
+</li>
+<li>
+<p>分类<br>
+更细的算法树见 <a href="https://spinningup.openai.com/en/latest/spinningup/rl_intro2.html#a-taxonomy-of-rl-algorithms" class="bare">https://spinningup.openai.com/en/latest/spinningup/rl_intro2.html#a-taxonomy-of-rl-algorithms</a></p>
+<div class="ulist">
+<ul>
+<li>
+<p>按是否使用环境模型</p>
+<div class="ulist">
+<ul>
+<li>
+<p>无模型 (Model-free)：不用显式的转移模型 P、奖励模型 R 做规划；仍使用环境给出的采样奖励，直接从交互数据学价值或策略。例子：DQN、PPO、SAC、OpenAI Five。</p>
+</li>
+<li>
+<p>有模型 (Model-based)：用已知或学到的模型做规划/想象。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>模型已知：规则模拟器 + 搜索。AlphaGo / AlphaZero 用完整棋规做 MCTS，不是 model-free。</p>
+</li>
+<li>
+<p>模型要学：MuZero、World Models、Dreamer、MBPO。风险是模型偏差(Model Bias)。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>按学习对象（model-free 下的主流划分）<br>
+| 流派 | 学习对象 | 核心问题 | 典型算法 |<br>
+| Value-based | 价值函数（V 或 Q） | 哪个动作价值最高？ | Q-learning、DQN、Double DQN |<br>
+| Policy-based | 策略函数 π | 该怎么做？（直接学动作分布） | REINFORCE |<br>
+| Actor-Critic | 价值 + 策略 | 价值评估 + 策略改进 | A2C、PPO、SAC |<br>
+PPO 是带 clip 的策略梯度，实现上几乎总是 Actor-Critic（用 critic 算优势）。SAC 同样是带价值网络的 Actor-Critic。二者与「纯策略梯度」（如不带 critic 的 REINFORCE）有交叉，不是互斥。</p>
+</li>
+<li>
+<p>按经验来自哪条策略（≠ 还能不能和环境交互）</p>
+<div class="ulist">
+<ul>
+<li>
+<p>在策略 (On-policy)：只用当前策略采到的数据更新。例子：SARSA、PPO。</p>
+</li>
+<li>
+<p>离策略 (Off-policy)：可用其他策略（旧策略、行为策略、别人的轨迹）的数据。例子：Q-learning、DQN、DDPG。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>在线 (Online) vs 离线 (Offline / batch RL)：还能不能继续与环境交互</p>
+<div class="ulist">
+<ul>
+<li>
+<p>DQN 是离策略且在线（一边玩一边从 replay 学）。</p>
+</li>
+<li>
+<p>PPO 是在策略且在线：还要继续跟环境交互，而且几乎只用刚采的那批数据。</p>
+</li>
+<li>
+<p>CQL、IQL 才是离线强化学习。</p>
+<div class="ulist">
+<ul>
+<li>
+<p>CQL（Conservative Q-Learning，保守 Q 学习）<br>
+在普通 Q 学习的损失上加一项：把数据里没出现过的动作的 Q 往下压，数据里真实出现过的动作的 Q 相对抬一点。学出来的 Q 偏保守，策略不敢乱选没见过的动作。代价是可能过于保守、学不满数据里其实还行的行为。</p>
+</li>
+<li>
+<p>IQL（Implicit Q-Learning，隐式 Q 学习）<br>
+不直接对「没见过的动作」做 Q 更新（避免查询 OOD 动作）。用 expectile 回归学 V，再用优势把数据集里较好的动作筛出来，策略只在数据支持的动作上模仿/加权。名字里的 implicit：最优 Q 不显式对未见动作取 max，而是从数据里的价值关系里推。</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Q: 什么时候用 Q，什么时候用 V？<br>
+这里的 Q 和 V 都是强化学习里的价值函数：<br>
+V(s)：状态价值。站在状态 s，按当前策略 π 继续玩，期望能拿到多少回报。<br>
+Q(s, a)：动作价值。同样站在 s，先指定这一步选动作 a，然后再按 π 走下去，期望回报是多少。<br>
+假设站在悬崖边，面前一个问号块，当前策略大多跳、偶尔跑：<br>
+| 函数 | 值 | 含义 |<br>
+|------|-----|------|<br>
+| V(s) | 10 分 | 从这个位置按当前策略继续玩，平均约 10 分 |<br>
+| Q(s, 跳) | 15 分 | 若这一步选跳，再按策略走下去，预期 15 分 |<br>
+| Q(s, 跑) | −100 分 | 若这一步选跑，预期掉悬崖 −100 分 |<br>
+V 是各动作 Q 按 π 加权的平均（所以能同时低于「跳」、高于「跑」）。最优 V 才等于 max_a 最优 Q；若始终跳，这里 V 应是 15 不是 10。<br>
+| 场景 | 用什么 | 原因 |<br>
+|------|--------|------|<br>
+| 无模型、离散动作里做决策 | Q | 比较每个动作的 Q，选最大（DQN） |<br>
+| 评估局面好坏 | V | 只关心状态整体，不指定动作 |<br>
+| PPO / A2C 的 critic 基线 | V | 用 V 减方差；优势 A ≈ Q − V（实践里 GAE 从 V 估，不必另训 Q 网） |<br>
+| SAC / DDPG 的 critic | Q | off-policy AC 用 Q 评估动作；actor 对着 Q 学 π，不靠 argmax |<br>
+选型直觉：<br>
+想回答「这一步选哪个动作更好」→ 用 Q（输入里必须带上 a）。<br>
+想回答「这个局面本身值多少」→ 用 V（只看 s）。</p>
+</li>
+<li>
+<p>策略与价值<br>
+策略 π 把状态映射到动作（或动作分布），分随机性策略与确定性策略。<br>
+价值函数预测从某状态（或状态-动作）出发的期望回报。折扣因子 γ 让智能体更看重近期奖励。<br>
+基于价值的智能体显式学价值、隐式推出策略；基于策略的智能体直接学 π；二者结合即演员-评论家(actor-critic)。</p>
+</li>
+<li>
+<p>强化学习与大模型<br>
+RLHF 用人类偏好训练奖励模型，再用 PPO 等强化学习微调策略；DPO 跳过显式 RL，用偏好对策略直接优化。</p>
+</li>
+<li>
+<p>Q：强化学习中所谓的损失函数与深度学习中的损失函数有什么区别呢？<br>
+深度学习：Loss 往往就是目标——让预测拟合标签。<br>
+强化学习：真正的目标是期望回报，由环境评判；写出的 Loss 多半是手段（TD 误差、策略梯度的代理目标），用来给参数一个可算的更新方向。</p>
+</li>
+<li>
+<p>主要内容</p>
+<div class="literalblock">
+<div class="content">
+<pre>第一篇 基础</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第1章 问题与 MDP
+1.1 智能体-环境循环
+    状态 / 观察、动作、奖励、回报、折扣
+    episodic 与 continuing；目标：最大化期望折扣回报
+1.2 马尔可夫性质
+    状态增强、POMDP、历史、信念状态
+1.3 策略与价值
+    π(a|s)、vπ、qπ；贝尔曼期望方程、贝尔曼最优方程
+    最优策略与最优价值
+1.4 动态规划
+    策略评估、策略改进、策略迭代、值迭代
+    压缩映射与收敛直觉
+1.5 广义策略迭代（GPI）
+    评估与改进交替；后面所有算法的骨架
+    近似评估、近似改进、步长控制
+1.6 赌博机
+    探索-利用的最小模型；单状态、非关联的特例
+    ε-greedy、UCB、Thompson sampling、regret</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第2章 从表格更新到自举
+2.1 蒙特卡洛
+    整条回报、首次/每次访问、MC 控制、重要性采样；高方差、无偏
+2.2 时序差分
+    TD(0)、TD 误差、自举；MC vs TD 的偏差-方差、收敛直觉
+2.3 Q-learning 与 SARSA
+    离策略 vs 在策略、ε-greedy、GLIE
+2.4 n-step 与 λ-return
+    n-step、λ-return、TD(λ)、资格迹
+    偏差-方差光谱，直接指向 GAE
+2.5 表格法局限
+    维度灾难、连续状态、泛化；为什么需要函数近似</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第二篇 价值方法</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>开篇导读：表格 Q-learning 换成神经网络，采样分布、目标、收敛性和稳定性都要重做。</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第3章 函数近似与稳定性
+3.1 线性近似、半梯度
+    线性值函数近似、半梯度 TD、批量 TD；投影与收敛性
+3.2 deadly triad
+    函数近似 × 自举 × 离策略
+3.3 稳定手段
+    目标网络、经验回放、双 Q、梯度裁剪
+    预告：这些手段如何装进 DQN</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第4章 DQN 及变种
+4.1 DQN 配方
+    回放 + 目标网络如何写入损失；训练循环
+    诊断：回报曲线、目标滞后、发散迹象
+4.2 Double DQN
+    过估计的来源；选择与评估解耦
+4.3 Rainbow（作为集成栈）
+    组件：Dueling、Prioritized Replay、Distributional、Noisy Nets
+    集成后的 Rainbow
+4.4 为何 LLM 对齐不用 Q 方法
+    组合动作空间、序列级稀疏奖励、Q 难估
+    离策略修正困难、deadly triad
+    与自回归、似然比、随机策略的匹配
+4.5 连续与大动作空间
+    max_a Q(s,a) 在连续动作上不可行
+    一句带过 NAF / CEM / DDPG</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第三篇 策略梯度到 PPO / GRPO</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>开篇导读：同一批 rollout：REINFORCE → Actor-Critic → GAE → TRPO → PPO。
+方差、偏差、步长被依次处理。GRPO 是 PPO 的估计器变体，不是新范式。</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第5章 策略梯度
+5.1 为什么直接学 π
+    连续动作、随机策略、序列生成、不可微奖励
+5.2 策略梯度定理与 log-trick
+    score function、轨迹概率、似然比
+5.3 REINFORCE 与基线
+    因果性、基线减方差、优势</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第6章 演员-评论家与 GAE
+6.1 Critic 代替整条回报
+    偏差换方差；actor / critic 分工
+6.2 优势函数
+    A = q − v；TD 残差当优势
+6.3 GAE
+    第 2.4 节在优势上的汇合；λ；与 n-step
+6.4 A2C / A3C
+    同步 vs 异步；现代实现走 A2C / PPO / SAC</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第7章 TRPO 与 PPO
+7.1 一步走太远会崩
+    TRPO：信赖域、自然梯度、单调改进（理论参照）
+    PPO 是近似与工程化
+7.2 截断代理目标
+    ratio、clip、min
+7.3 完整循环
+    rollout → GAE → K epoch → minibatch
+    优势归一化、价值裁剪、熵
+    诊断：KL、熵、clip fraction、价值损失
+7.4 clip vs KL(π‖π_ref)
+    clip 约束相对 π_old 的局部步长
+    KL 约束相对 π_ref，防遗忘与奖励黑客
+    两者不能互相替代
+7.5 与 A2C / TRPO 对照
+7.6 PPO 作用到序列模型时多出来的东西
+    token 级 loss、序列奖励、掩码</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第8章 GRPO 与无 critic 估计器
+8.1 去掉 critic
+    组内相对优势 A = (r − mean) / std
+    序列级优势广播到 token；保留参考模型 KL
+8.2 与 PPO 对照
+    clip 保留；baseline 换掉；KL 保留；优点与限制
+8.3 同类估计器
+    RLOO、ReMax</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第四篇 连续控制、离线与规划</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第9章 连续控制
+9.1 DPG / DDPG
+    确定性策略；max_a Q 的替代
+9.2 TD3
+    双 Q、延迟更新、目标策略平滑
+9.3 SAC
+    最大熵、温度、重参数化
+9.4 与 PPO 对照
+    on-policy vs off-policy；样本效率；稳定性；适用场景</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第10章 模仿学习与离线 RL
+10.1 问题：没有在线交互
+    分布偏移、外推误差
+10.2 模仿学习
+    BC（SFT 就是 BC）；IRL、GAIL
+10.3 离线 RL
+    CQL、IQL、TD3+BC、Decision Transformer
+10.4 偏好数据为什么还要在线 RL</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第11章 规划与搜索
+11.1 Dyna
+    真实经验 vs 想象经验；背景规划 vs 决策时规划
+11.2 MCTS
+    选择 / 扩展 / 模拟 / 回传；UCT、PUCT
+11.3 AlphaGo / AlphaZero
+    已知规则、自我对弈、网络 + 搜索
+11.4 与 model-free 的关系</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第12章 学习型世界模型
+12.1 MuZero
+    隐式模型；预测奖励 / 价值 / 策略
+12.2 Dreamer / World Models
+    隐空间想象；actor-critic
+12.3 模型偏差
+    复合误差、短 rollout、不确定性、集成</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第五篇 大模型对齐与推理 RL</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第13章 RLHF 流水线
+13.1 数据与模型角色
+    SFT、偏好数据、奖励模型
+    策略模型、参考模型、价值模型
+13.2 训练时多出来的约束
+    KL(π‖π_ref) 在流水线中的位置
+    奖励黑客、过度优化、长度偏差
+13.3 诊断
+    KL、熵、clip fraction、奖励分数、长度</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第14章 直接偏好优化
+14.1 从 RLHF 到闭式偏好损失
+    DPO（主线）；IPO、KTO、ORPO、SimPO
+14.2 与 PPO / GRPO 对照
+    无奖励模型、无在线采样；优点与限制</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>第15章 推理 RL
+15.1 奖励从哪来
+    可验证奖励、规则奖励、格式奖励；ORM / PRM
+15.2 把第8章用起来
+    R1 风格：组采样 + 规则奖励 + GRPO；自我对弈
+    Best-of-N、拒绝采样（数据/推理，不是估计器）
+15.3 搜索接到生成上（相对第11章的新内容）
+    过程奖励当模拟器信号；Tree-of-Thought、MCTS-over-tokens
+    与棋类 MCTS 的差别：环境模型是语言模型自己</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>附录
+A. 延伸阅读
+    探索：RND、ICM、计数方法（经典探索见 1.6，Noisy 见 4.3）
+    多智能体、层级 RL、元 RL
+    安全、可解释、离线评估、治理</pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_马尔可夫决策过程markov_decision_process_mdp">2. 马尔可夫决策过程(Markov Decision Process, MDP)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_2">2.1. 概念</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>概念<br>
+<a href="https://en.wikipedia.org/wiki/Markov_decision_process" class="bare">https://en.wikipedia.org/wiki/Markov_decision_process</a></p>
+<div class="literalblock">
+<div class="content">
+<pre>State
+Action
+State transition, state transition probability p(s′∣s,a)
+Reward, reward probability p(r∣s,a)
+Trajectory, episode, return, discounted return
+Markov decision process</pre>
+</div>
+</div>
+</li>
+<li>
+<p>马尔可夫性质(Markov property)<br>
+马尔可夫性质也可以描述为给定当前状态时，将来的状态与过去状态是条件独立的。如果某一个过程满足马尔可夫性质，那么未来的转移与过去的是独立的，它只取决于现在。<br>
+设随机过程的状态序列为：S₁, S₂, &#8230;&#8203;, Sₜ, Sₜ₊₁, &#8230;&#8203;<br>
+若该过程满足马尔可夫性质，则对于任意状态 s 和任意时刻 t，有：<br>
+P( Sₜ₊₁ = s | S₁, S₂, &#8230;&#8203;, Sₜ ) = P( Sₜ₊₁ = s | Sₜ )<br>
+两者完全相等，说明一旦“现在”被确定，任何“过去”的信息对于预测“未来”都是多余的，这就是条件独立（Conditionally Independent）。<br>
+不是无条件独立：过去的历史通过连锁反应，决定了现在处于什么位置，因此过去和未来当然有间接关系。<br>
+是条件独立：只有当“给定当前状态”这个条件成立时，过去和未来才被隔断。</p>
+</li>
+<li>
+<p>马尔可夫性质的通俗理解<br>
+在跟AI下国际象棋，棋盘上目前的残局就是“当前状态”。这个残局是怎么形成的（是对方第一步走错了，是刚才精妙布局造成的，即“过去”）完全不影响接下来的胜率预测。AI只需要看一眼眼前的棋盘布局（现在），就能做出完美的下一步决策（未来）。因此，马尔可夫性质也被形象地称为“无记忆性”（Memoryless）。<br>
+过去的信息已经被“压碎”并全部包含在了“当前状态”里。</p>
+</li>
+<li>
+<p>Q: 不满足马尔可夫性质怎么办？<br>
+非马尔可夫（原始）：<br>
+P(明天健康 | 今天报告) ≠ P(明天健康 | 今天报告 + 过去5年病史)<br>
+马尔可夫化（扩充状态）：<br>
+定义 S&#8217;ₜ = (今天的报告, 过去5年病史摘要)，则<br>
+P( S&#8217;ₜ₊₁ | S'₁, &#8230;&#8203;, S&#8217;ₜ ) = P( S&#8217;ₜ₊₁ | S&#8217;ₜ )<br>
+原问题：状态不够“全”，不满足马尔可夫性。<br>
+解决方案：把历史关键信息编码进当前状态，让状态“足够”描述过去。<br>
+结果：一个高维但满足马尔可夫性的状态空间，使得强化学习、隐马尔可夫模型、蒙特卡洛方法等 AI 工具可以正常使用。<br>
+状态增强（State Augmentation）：<br>
+当系统不满足马尔可夫性质时，通过扩充状态空间，将历史信息编码进当前状态，使得扩充后的状态序列满足马尔可夫性质。</p>
+</li>
+<li>
+<p>马尔可夫过程（MP）<br>
+纯随机的状态转移链条。<br>
+组成：只有状态（State）和状态转移概率（Transition Probability）</p>
+</li>
+<li>
+<p>马尔可夫奖励过程（MRP）<br>
+在 MP 的基础上，给每一次状态转移或进入某个状态时，加上一个即时分数（奖励）。<br>
+组成： 状态 + 转移概率 + 奖励（Reward）</p>
+</li>
+<li>
+<p>马尔可夫决策过程（MDP）<br>
+在 MRP 的基础上引入动作（Action）。策略 π 是求解对象，不属于环境五元组。<br>
+组成： 状态 + 动作 + 转移概率 + 奖励（以及折扣 γ）</p>
+</li>
+<li>
+<p>Q: 按“对马尔可夫性质的依赖程度”来划分，强化学习如何分类？</p>
+<div class="ulist">
+<ul>
+<li>
+<p>象棋和围棋属于标准 MDP。</p>
+</li>
+<li>
+<p>马里奥、斗地主属于 POMDP RL（部分可观测马尔可夫决策过程）。</p>
+</li>
+<li>
+<p>为什么马里奥属于 POMDP（物理运动的 POMDP）？<br>
+单张游戏画面（静态状态）无法满足马里奥的马尔可夫性质：核心问题：单张画面丢失了“速度”和“方向”信息。如果只看马里奥在某一帧的截图，无法知道他是正在向右高速奔跑、还是刚刚起跳、还是正在向下坠落。输入信息：需要最近 k 步历史序列（帧堆叠 Frame Stacking）。为了让游戏满足马尔可夫性，经典的强化学习论文（如 DeepMind 的 DQN 论文）引入了帧堆叠（Frame Stacking）技术。算法不只输入当前帧，而是连续输入最近的 4 帧画面（即 k=4）。通过连续的 4 帧，网络就能计算出马里奥的速度、加速度和移动方向。</p>
+</li>
+<li>
+<p>为什么斗地主属于 POMDP（不完美信息的 POMDP）：<br>
+隐藏信息是“对手的手牌”：不知道底牌（叫牌前）和另外两家手里的具体牌型。历史的局限性：哪怕记录了从开局到现在的所有出牌历史（整条轨迹），由于洗牌和发牌的随机性，例如在第 10 步时，依然无法百分之百确定对手手里剩下的是什么牌。<br>
+斗地主的历史序列只能用来“推算概率”（比如对方有炸弹的概率是 70%），而无法像马里奥那样推导出确定、完整的状态。</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Q: 马尔可夫过程是什么？马尔可夫决策过程又是什么？其中马尔可夫最重要的性质是什么呢？<br>
+马尔可夫过程是一个二元组 ⟨S, P⟩，S 为状态集合，P 为状态转移函数；<br>
+马尔可夫决策过程通常写成五元组 ⟨S, A, P, R, γ⟩：A 为动作集合，P 为转移，R 为奖励（可写成 R(s)、R(s,a) 或 R(s,a,s′)），γ 为折扣因子。<br>
+马尔可夫最重要的性质是：给定当前，未来与更早的过去条件独立。对无动作的过程：p(sₜ₊₁ | sₜ) = p(sₜ₊₁ | s₁, …, sₜ)；对 MDP：p(sₜ₊₁ | sₜ, aₜ) = p(sₜ₊₁ | hₜ, aₜ)。</p>
+</li>
+<li>
+<p>Q: 一般怎么求解马尔可夫决策过程？<br>
+无动作的 MRP 贝尔曼方程（不要和 MDP 混用）为：<br>
+v(s) = R(s) + γ ∑_{s′} p(s′|s) v(s′)<br>
+矩阵形式 v = R + γ P v。<br>
+MDP 在策略 π 下的贝尔曼期望方程还要对动作求和，见下文「贝尔曼方程」。<br>
+直接求逆只适用于很小的 MRP/MDP；大规模用动态规划、蒙特卡洛、时序差分或函数近似。</p>
+</li>
+<li>
+<p>Q: 如果数据流不具备马尔可夫性质怎么办？<br>
+扩充状态（把最近 k 步历史拼进当前状态），或用 LSTM/RNN 记忆历史，或改用 POMDP 框架处理部分可观测性。</p>
+</li>
+<li>
+<p>Q: 基于状态价值函数的贝尔曼方程与基于动作价值函数的贝尔曼方程</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_key_elements_of_mdp">2.2. Key elements of MDP</h3>
+<div class="sect3">
+<h4 id="_sets">2.2.1. Sets</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>State: the set of states <strong>S</strong></p>
+</li>
+<li>
+<p>Action: the set of actions <strong>A(s)</strong> is associated for state <strong>s ∈ S</strong>.</p>
+</li>
+<li>
+<p>Reward: the set of rewards <strong>R(s, a)</strong>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_probability_distribution">2.2.2. Probability distribution</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>State transition probability: at state <strong>s</strong>, taking action <strong>a</strong>, the probability to transit to state <strong>s'</strong> is <strong>p(s' | s, a)</strong></p>
+</li>
+<li>
+<p>Reward probability: at state <strong>s</strong>, taking action <strong>a</strong>, the probability to get reward <strong>r</strong> is <strong>p(r | s, a)</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_policy">2.2.3. Policy</h4>
+<div class="paragraph">
+<p>At state <strong>s</strong>, the probability to choose action <strong>a</strong> is <strong>π(a | s)</strong></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_markov_property_memoryless_property">2.2.4. Markov property: memoryless property</h4>
+<div class="paragraph">
+<p>\[p(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \ldots, s_0) = p(s_{t+1} \mid s_t, a_t)\]</p>
+</div>
+<div class="paragraph">
+<p>\[p(r_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \ldots, s_0) = p(r_{t+1} \mid s_t, a_t)\]</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_马尔可夫性质">2.3. 马尔可夫性质</h3>
+<div class="paragraph">
+<p>具有马尔可夫性质，即未来状态只依赖于当前状态和动作，与过去状态无关:<br>
+\(P(s_{t+1} | s_t, a_t, s_{t-1}, a_{t-1}, \ldots) = P(s_{t+1} | s_t, a_t)\)</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_马尔可夫奖励过程">2.4. 马尔可夫奖励过程</h3>
+<div class="paragraph">
+<p>马尔可夫奖励过程（Markov reward process, MRP）是马尔可夫链加上奖励函数。在马尔可夫奖励过程中，状态转移矩阵和状态都与马尔可夫链一样，只是多了奖励函数（reward function）。奖励函数 R 是一个期望，表示当到达某一个状态的时候，可以获得多大的奖励。另外定义了折扣因子 γ 。如果状态数是有限的，那么 R 可以是一个向量。</p>
+</div>
+<div class="paragraph">
+<p>使用折扣因子的原因：<br>
+第一，有些马尔可夫过程是带环的，它并不会终结，想避免无穷的奖励。<br>
+第二，并不能建立完美的模拟环境的模型，对未来的评估不一定是准确的，不一定完全信任模型，因为这种不确定性，所以对未来的评估增加一个折扣。想把这个不确定性表示出来，希望尽可能快地得到奖励，而不是在未来某一个点得到奖励。<br>
+第三，如果奖励是有实际价值的，可能更希望立刻就得到奖励，而不是后面再得到奖励（现在的钱比以后的钱更有价值）。<br>
+有些时候可以把折扣因子设为 0（γ=0），就只关注当前的奖励。<br>
+也可以把折扣因子设为 1（γ=1），对未来的奖励并没有打折扣，未来获得的奖励与当前获得的奖励是一样的。<br>
+折扣因子可以作为强化学习智能体的一个超参数（hyperparameter）来进行调整，通过调整折扣因子，可以得到不同动作的智能体。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_马尔可夫决策过程">2.5. 马尔可夫决策过程</h3>
+<div class="paragraph">
+<p>相对于马尔可夫奖励过程，马尔可夫决策过程多了决策（决策是指动作），其他的定义与马尔可夫奖励过程的是类似的。此外，状态转移也多了一个条件，变成了：<br>
+p(sₜ₊₁ = s′ | sₜ = s, aₜ = a)<br>
+未来的状态不仅依赖于当前的状态，也依赖于在当前状态智能体采取的动作。马尔可夫决策过程满足条件：<br>
+p(sₜ₊₁ | sₜ, aₜ) = p(sₜ₊₁ | hₜ, aₜ)<br>
+对于奖励函数，它也多了一个当前的动作。按 Sutton 惯例，采取 aₜ 之后观察到的是 rₜ₊₁（不是 rₜ）：<br>
+R(s, a) = 𝔼[ rₜ₊₁ | sₜ = s, aₜ = a ]<br>
+当前的状态以及采取的动作会决定智能体在下一步可能得到的奖励多少。<br>
+其中：<br>
+hₜ = (s₀, a₀, r₁, s₁, a₁, r₂, …, sₜ)<br>
+hₜ 表示到时刻 t 为止的完整历史信息（history），即所有过去的状态、动作、奖励等。<br>
+其中：<br>
+s₀ 表示初始状态<br>
+a₀ 表示在 s₀ 采取的动作<br>
+r₁ 表示采取 a₀ 后观察到的奖励<br>
+s₁ 表示下一状态<br>
+依此类推，直到当前时刻 t 的状态 sₜ<br>
+等式 p(sₜ₊₁ | sₜ, aₜ) = p(sₜ₊₁ | hₜ, aₜ) 表达的是马尔可夫性质：<br>
+给定当前状态和动作后，历史中更早的信息对预测未来状态没有额外帮助。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考">2.6. 参考</h3>
+<div class="paragraph">
+<p><a href="https://en.d2l.ai/chapter_reinforcement-learning/mdp.html" class="bare">https://en.d2l.ai/chapter_reinforcement-learning/mdp.html</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_贝尔曼公式贝尔曼方程bellman_equation">3. 贝尔曼公式/贝尔曼方程(Bellman Equation)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_3">3.1. 概念</h3>
+<div class="paragraph">
+<p>贝尔曼方程定义了当前状态与未来状态之间的关系。未来奖励的折扣总和加上即时奖励，就组成了贝尔曼方程。</p>
+</div>
+<div class="paragraph">
+<p>贝尔曼方程就是当前状态与未来状态的迭代关系，表示当前状态的价值函数可以通过下个状态的价值函数来计算。贝尔曼方程因其提出者、动态规划创始人理查德⋅贝尔曼（Richard Bellman）而得名，也叫作“动态规划方程”。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_return回报">3.2. return(回报)</h3>
+<div class="paragraph">
+<p>What is return? The (discounted) sum of the rewards obtained along a trajectory.</p>
+</div>
+<div class="paragraph">
+<p>假设一个确定性环境：状态 A → 状态 B → 终止，A 的奖励 0，B 的奖励 10，γ=0.9。<br>
+在 B 点：GB =10<br>
+在 A 点：GA=0+0.9×GB=9<br>
+用贝尔曼形式看：V(A)=0+0.9V(B)=9<br>
+Return 不是把 0 和 10 简单相加（那会是 10），而是把 B 的价值“折现”后传回给 A。贝尔曼方程做的正是——把远处的价值通过折扣一层层传回来。</p>
+</div>
+<div class="paragraph">
+<p>Q: 为什么有γ：折扣因子？<br>
+γ 有三个不可替代的作用：<br>
+数学上：防止无穷奖励导致 Return 爆炸，保证数值有限；<br>
+直觉上：反映“近期的奖励比远期的更可靠、更重要”的常识；<br>
+算法上：γ &lt; 1 时贝尔曼算子是压缩映射，迭代收敛；γ = 1 的持续任务回报可以发散，需额外条件（有终止的回合制、平均奖励等）。</p>
+</div>
+<div class="paragraph">
+<p>Q: 如何计算return?<br>
+return(回报) Gₜ 是从时刻 t 起沿轨迹累积的（折现）奖励之和。</p>
+</div>
+<div class="paragraph">
+<p>定义式（求和）：把未来每步奖励乘以折扣因子 γᵏ 后相加，γ ∈ [0, 1]：<br>
+\[G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots\]<br>
+若回合在终止时刻 T 结束，求和上限改为 T − t − 1。</p>
+</div>
+<div class="paragraph">
+<p>递推式（贝尔曼形式，最常用）：当前回报 = 即时奖励 + γ × 下一时刻回报：<br>
+\[G_t = R_{t+1} + \gamma G_{t+1}\]<br>
+这是回报的定义恒等式，不是自举。自举(bootstrap)是用估计值 V(Sₜ₊₁) 代替真实的后续回报 Gₜ₊₁。蒙特卡洛用整条 Gₜ（不自举）；TD 用 Rₜ₊₁ + γ V(Sₜ₊₁)（自举）。上面的例子中：G_B = 10，G_A = 0 + 0.9 × G_B = 9，是用递推式从后往前算的真实回报。实操中很少按定义式展开无穷求和，而是用递推式反向计算（蒙特卡洛），或用贝尔曼方程迭代逼近。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_state_value">3.3. state value</h3>
+<div class="paragraph">
+<p>Gₜ 的期望（或称期望值、均值）被定义为<strong>状态价值函数</strong>，或简称为<strong>状态价值</strong>：<br>
+\[v_\pi(s) = \mathbb{E}[G_t \mid S_t = s]\]</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>它是 <code>s</code> 的函数。它是一个条件期望，条件是状态从 <code>s</code> 开始。</p>
+</li>
+<li>
+<p>它基于策略 <code>π</code>。对于不同的策略，状态价值可能不同。</p>
+</li>
+<li>
+<p>它表示一个状态的“价值”。比较两个策略不能只看单个状态：若对所有状态 <code>s</code> 都有 <code>v_π₁(s) ≥ v_π₂(s)</code>（且至少一个状态严格大于），则称 <code>π₁</code> 优于 <code>π₂</code>；实践中常以初始状态价值 <code>v_π(s₀)</code> 或按状态分布加权的均值来衡量。<br>
+Q：回报（return）与状态价值（state value）之间的关系是什么？<br>
+A：状态价值是从一个状态出发所能获得的所有可能回报的均值。<br>
+如果所有因素——<code>π(a|s)</code>、<code>p(r|s,a)</code>、<code>p(s'|s,a)</code>——都是确定性的，那么状态价值与回报相同。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_推导derivation">3.4. 推导(Derivation)</h3>
+<div class="paragraph">
+<p>先写 <strong>MRP</strong>（无动作）的贝尔曼方程，再写 <strong>MDP</strong> 在策略 π 下的期望方程。不要把 MRP 的 v(s) = R(s) + γ ∑ p(s′|s) v(s′) 直接当成 MDP 公式。</p>
+</div>
+<div class="paragraph">
+<p>MRP：</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>v(s) = E[ Gₜ | sₜ = s ]
+     = E[ rₜ₊₁ + γ Gₜ₊₁ | sₜ = s ]
+     = E[ rₜ₊₁ | Sₜ = s ] + γ E[ Gₜ₊₁ | Sₜ = s ]
+     = R(s) + γ E[ v(Sₜ₊₁) | sₜ = s ]
+     = R(s) + γ ∑_{s′} p(s′|s) v(s′)
+     直觉就是：当前价值 = 这一步的期望奖励 + 折扣后的「下一状态价值的期望」。
+其中：
+    E[ rₜ₊₁ | Sₜ = s ] 按定义就是即时奖励期望 R(s)
+    E[ Gₜ₊₁ | Sₜ = s ]
+        = E[ E[Gₜ₊₁ | Sₜ₊₁] | Sₜ = s ]
+        = E[ v(Sₜ₊₁) | Sₜ = s ]
+        = ∑_{s′} p(s′|s) v(s′)</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>矩阵形式可直接求逆：</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>v = R + γ P v
+(I − γ P) v = R
+v = (I − γ P)⁻¹ R</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>求逆复杂度 O(N³)，只适用于状态很少的 MRP。</p>
+</div>
+<div class="paragraph">
+<p>MDP、策略 π 下的贝尔曼期望方程（策略评估）：</p>
+</div>
+<div class="paragraph">
+<p>\[v_\pi(s) = \sum_a \pi(a|s) \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma v_\pi(s')\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>动作价值：</p>
+</div>
+<div class="paragraph">
+<p>\[q_\pi(s,a) = \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma \sum_{a'} \pi(a'|s') q_\pi(s',a')\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>关系：v_π(s) = ∑_a π(a|s) q_π(s,a)。</p>
+</div>
+<div class="paragraph">
+<p>由于解析解在大型问题中失效，后面几章分别用动态规划、蒙特卡洛、时序差分和函数近似来逼近。</p>
+</div>
+<div class="paragraph">
+<p>| 方法 | 是否需要知道 P | 核心操作 | 适用场景 |<br>
+|------|----------------|----------|----------|<br>
+| 动态规划迭代 | 需要 | 用模型对贝尔曼方程迭代 | 已知环境模型，中等规模 |<br>
+| 蒙特卡洛方法 | 不需要 | 采样完整回报再平均 | 未知环境，有终止的回合制任务 |<br>
+| 时序差分学习 | 不需要 | 每步用估计自举更新 | 未知环境，可逐步更新（最常用） |<br>
+| 价值函数逼近 | 不需要 | 参数化 v 或 q | 大规模或连续状态空间 |<br>
+这里的 P 是指环境的状态转移概率（transition probability）。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_贝尔曼最优公式bellman_optimality_equation">4. 贝尔曼最优公式(Bellman Optimality Equation)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_4">4.1. 概念</h3>
+<div class="paragraph">
+<p>贝尔曼期望方程描述「给定策略 π，价值是多少」。最优方程描述「最好能到多少」：对所有策略取最优。</p>
+</div>
+<div class="paragraph">
+<p>\[v_*(s) = \max_\pi v_\pi(s), \qquad q_*(s,a) = \max_\pi q_\pi(s,a)\]</p>
+</div>
+<div class="paragraph">
+<p>最优策略 π* 在每个状态选使 q_* 最大的动作。v_* 与 q_* 互相决定：</p>
+</div>
+<div class="paragraph">
+<p>\[v_*(s) = \max_a q_*(s,a)\]</p>
+</div>
+<div class="paragraph">
+<p>\[q_*(s,a) = \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma v_*(s')\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>合成一式（贝尔曼最优方程）：</p>
+</div>
+<div class="paragraph">
+<p>\[v_*(s) = \max_a \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma v_*(s')\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>\[q_*(s,a) = \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma \max_{a'} q_*(s',a')\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>Q-learning 的 max_{a'} 就是在采样逼近最后这一式。值迭代直接迭代 v_* 的方程；策略迭代先解期望方程再贪婪改进。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_动态规划法">5. 动态规划法</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_与马尔可夫的关系">5.1. 与马尔可夫的关系</h3>
+<div class="paragraph">
+<p>动态规划（Dynamic Programming, DP）与马尔可夫决策过程（MDP）是「求解方法」与「问题建模」的关系：</p>
+</div>
+<div class="paragraph">
+<p>| 角色 | 是什么 |<br>
+|------|--------|<br>
+| 马尔可夫性质 / MDP | 环境怎么描述：下一状态、奖励只依赖当前状态（和动作），与更早历史无关 |<br>
+| 贝尔曼方程 | 把长期回报写成递归（也叫动态规划方程），由动态规划创始人 Richard Bellman 提出 |<br>
+| 动态规划 | 在已知环境模型时，按贝尔曼方程迭代求解 V / π* |</p>
+</div>
+<div class="paragraph">
+<p>要点：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>马尔可夫性质</strong>使「当前状态价值只由下一状态价值决定」成立，最优子结构才能拆开——这是 DP 可用的前提。</p>
+</li>
+<li>
+<p><strong>贝尔曼方程</strong> = 动态规划在序贯决策上的数学形式。</p>
+</li>
+<li>
+<p><strong>DP 求解 MDP</strong> 通常要求模型已知（知道转移 P 与奖励 R）。模型未知时改用蒙特卡洛、TD、Q-learning 等。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>MDP 定义要优化什么；贝尔曼方程写出最优子结构；动态规划按这个结构迭代求解。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_前提与适用">5.2. 前提与适用</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>需要完整环境模型：p(s′|s,a)、r(s,a)（或等价表格）。</p>
+</li>
+<li>
+<p>状态/动作空间有限且规模适中（表格法；过大则需函数逼近，不再是经典表格 DP）。</p>
+</li>
+<li>
+<p>属于 model-based：不与环境交互采样也能算；与 MC/TD 的 model-free 路线相对。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_广义策略迭代gpi">5.3. 广义策略迭代(GPI)</h3>
+<div class="paragraph">
+<p>几乎所有 RL 控制算法都是「评估」和「改进」两件事在交织：评估当前 π 的价值，再据此改 π。DP 把两步做精确；MC/TD 把评估做成采样近似。这叫广义策略迭代(Generalized Policy Iteration)。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_三类核心算法">5.4. 三类核心算法</h3>
+<div class="paragraph">
+<p>都是在 MDP 上解贝尔曼方程，差别只在「评估」与「改进」如何交织：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>策略评估（Policy Evaluation）</strong><br>
+固定策略 π，迭代贝尔曼期望方程，得到 v_π。<br>
+更新形式：v ← r_π + γ·P_π·v。扫完全部状态一次叫一次 sweep。</p>
+</li>
+<li>
+<p><strong>策略迭代（Policy Iteration）</strong><br>
+交替「策略评估 → 贪婪改进」：π′(s) = argmax_a q_π(s,a)，直到策略稳定。<br>
+通常收敛轮数少，但每轮评估可能要扫很多遍状态。</p>
+</li>
+<li>
+<p><strong>值迭代（Value Iteration）</strong><br>
+直接迭代贝尔曼最优方程，不必等 v_π 完全收敛：</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>\[v_{k+1}(s) = \max_a \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma v_k(s')\bigr]\]</p>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>收敛后 π*(s) = argmax_a q(s,a)。值迭代 = 每次只做一轮不精确评估，立刻贪婪改进。</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_与_mc_td_的对照">5.5. 与 MC / TD 的对照</h3>
+<div class="paragraph">
+<p>| 方法 | 是否需要 P、R | 是否需完整回合 | 与 DP 的关系 |<br>
+|------|---------------|----------------|--------------|<br>
+| 动态规划(DP) | 需要 | 否 | 精确用模型做自举 |<br>
+| 蒙特卡洛(MC) | 不需要 | 是 | 用真实回报均值估计，无自举 |<br>
+| 时序差分(TD) | 不需要 | 否 | 用「采样 + 自举」，介于 DP 与 MC 之间 |</p>
+</div>
+<div class="paragraph">
+<p>TD 常被说成「结合了 DP 的自举与 MC 的采样」：DP 用模型算期望，TD 用一次转移样本近似该期望。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考_2">5.6. 参考</h3>
+<div class="paragraph">
+<p><a href="https://en.d2l.ai/chapter_reinforcement-learning/value-iter.html" class="bare">https://en.d2l.ai/chapter_reinforcement-learning/value-iter.html</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_蒙特卡洛方法">6. 蒙特卡洛方法</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_5">6.1. 概念</h3>
+<div class="paragraph">
+<p>蒙特卡洛(Monte Carlo, MC)不需要转移 P、奖励函数 R：让策略在环境里走完一个回合，用这条轨迹的真实回报 Gₜ 当目标，再对多次采样取平均。名字来自「用随机采样估计期望」——这里估的是 v_π(s) = E_π[Gₜ | Sₜ = s]。</p>
+</div>
+<div class="paragraph">
+<p>预测（评估固定 π）与控制（改进 π）仍是 GPI 的两步，只是评估改成采样平均，不再扫模型。常说的「无偏」默认指 first-visit、在策略、按回合做 1/N 平均。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_前提与适用_2">6.2. 前提与适用</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>无模型(model-free)：只跟环境交互，不需要知道 P、R。</p>
+</li>
+<li>
+<p>任务最好是回合制(episodic)：有终止，才能算出一条完整 Gₜ。持续任务(continuing)没有自然终点，MC 不好用（截断会引入偏差，通常改用 TD）。</p>
+</li>
+<li>
+<p>控制时必须探索：没模型就不能从 v 推出贪婪动作，通常直接学 q(s,a)。只走贪婪策略的话，没试过的动作永远没有样本。</p>
+</li>
+<li>
+<p>样本效率低于 TD：一条轨迹要等回合结束才更新，中间步不能立即学。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_预测策略评估">6.3. 预测（策略评估）</h3>
+<div class="paragraph">
+<p>固定策略 π，用采样估计 v_π 或 q_π。</p>
+</div>
+<div class="paragraph">
+<p>一条回合：S₀, A₀, R₁, S₁, …，直到终止时刻 T。从时刻 t 起的回报用递推从后往前算（见前文「return与reward」）：Gₜ = Rₜ₊₁ + γ Gₜ₊₁，终止后不再加未来项。</p>
+</div>
+<div class="paragraph">
+<p>评估固定 π 时用样本均值（访问计数 N(s)），这才是无偏估计：</p>
+</div>
+<div class="paragraph">
+<p>v(s) ← v(s) + (1/N(s)) [G − v(s)]</p>
+</div>
+<div class="paragraph">
+<p>控制时 π 在变（或环境非平稳），改用常数步长：牺牲无偏，更跟近期。</p>
+</div>
+<div class="paragraph">
+<p>v(s) ← v(s) + α [G − v(s)]</p>
+</div>
+<div class="paragraph">
+<p>学动作价值时同理，把 (s) 换成 (s,a)；G 仍是该次访问之后的整条回报。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_首次访问与每次访问">6.4. 首次访问与每次访问</h3>
+<div class="paragraph">
+<p>同一回合里一个状态可能出现多次。两种计数在表格、充分采样下都收敛到 v_π：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>首次访问(first-visit)：每个回合里，每个状态只在第一次出现时，用那次之后的 G 更新。对 v_π(s) 无偏。</p>
+</li>
+<li>
+<p>每次访问(every-visit)：该回合里每次经过该状态都更新。实现更简单，和函数近似、TD(λ) 的联系更直接。有限样本有偏：不是因为多次访问相关（相关的无偏样本，平均仍无偏），而是访问次数 N 与 G 相关（某类回合里 s 出现更勤）。偏差随访问次数消失，均值仍收敛。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>直觉：首次访问把「从 s 出发的整段回报」当成一次独立试验（每回合至多一次）；每次访问把每次路过都当一次试验。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_控制gpi">6.5. 控制（GPI）</h3>
+<div class="paragraph">
+<p>无模型时不能对 v 做 argmax 再按 P 展开，所以控制直接学 q(s,a)，再对 q 取贪婪。仍是广义策略迭代：评估当前 π 的 q_π → 按 q 改进 π。</p>
+</div>
+<div class="paragraph">
+<p>探索是硬约束。π 若是确定性贪婪，没试过的 a 永远没有样本。两种经典处理：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>探索起步(exploring starts, MC ES)</strong><br>
+每个回合从随机 (s,a) 出发，之后按当前 π 走完。理论上可覆盖全部状态-动作，但不自然（多数环境不能指定起始动作）。</p>
+</li>
+<li>
+<p><strong>在策略 ε-贪婪（on-policy MC control）</strong><br>
+π 本身是 ε-贪婪：以 1−ε 选 argmax_a q(s,a)，以 ε 均匀随机。评估的就是这条会探索的 π，改进也在 ε-贪婪策略类里进行。若满足 GLIE（贪婪极限中的无限探索：ε → 0，且每个 (s,a) 被访问无穷次），可收敛到最优。</p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="_算法步骤表格型首次访问在策略">6.5.1. 算法步骤（表格型，首次访问、在策略）</h4>
+<div class="paragraph">
+<p>初始化: q(s,a) ← 任意；N(s,a) ← 0；π 为 ε-贪婪。</p>
+</div>
+<div class="paragraph">
+<p>每个回合:</p>
+</div>
+<div class="paragraph">
+<p>① 用 π 生成一条回合：S₀, A₀, R₁, …，直到终止。<br>
+② G ← 0。从 t = T−1 倒到 0：<br>
+<strong>* G ← Rₜ₊₁ + γ G。这就是该时刻的 Gₜ。<br>
+</strong>* 仅当 (Sₜ, Aₜ) 不出现在更早的 S₀, A₀, …, Sₜ₋₁, Aₜ₋₁ 时才更新——这才是 first-visit。倒着扫时「第一次碰到就更新」是 last-visit，不要写成那种。<br>
+<strong>* N(Sₜ, Aₜ) ← N + 1。<br>
+</strong>* q(Sₜ, Aₜ) ← q + (1/N) [G − q]。<br>
+<strong>*</strong> π(Sₜ) 改为对 q(Sₜ, ·) 的 ε-贪婪。</p>
+</div>
+<div class="paragraph">
+<p>不必存下整张回报列表；上面就是增量均值。π 在变时可用常数 α 代替 1/N。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_离策略与重要性采样">6.6. 离策略与重要性采样</h3>
+<div class="paragraph">
+<p>想用行为策略 b 采样、却评估或改进目标策略 π（例如 π 很贪婪、b 负责探索），就是离策略(off-policy)。</p>
+</div>
+<div class="paragraph">
+<p>覆盖条件(coverage)：π(a|s) &gt; 0 的动作必须 b(a|s) &gt; 0，否则重要性采样比没有定义，估计也对不上。</p>
+</div>
+<div class="paragraph">
+<p>同一条轨迹在 π 与 b 下概率不同，要用重要性采样比把回报校正到 π 的测度上。从 t 走到终止：</p>
+</div>
+<div class="paragraph">
+<p>\[\rho_{t:T-1} = \prod_{k=t}^{T-1} \frac{\pi(A_k \mid S_k)}{b(A_k \mid S_k)}\]</p>
+</div>
+<div class="paragraph">
+<p>下面的求和只对「访问过该 s（或该 (s,a)）」的那些回合/访问，不是全部样本。</p>
+</div>
+<div class="paragraph">
+<p>普通重要性采样：v(s) ≈ (1/n) ∑ᵢ ρᵢ Gᵢ（first-visit 下无偏，方差可以极大）。<br>
+加权重要性采样：v(s) ≈ (∑ᵢ ρᵢ Gᵢ) / (∑ᵢ ρᵢ)（方差通常更小；小样本有偏，大样本一致）。</p>
+</div>
+<div class="paragraph">
+<p>乘积 ρ 很容易接近 0，偶尔又极大，这是离策略 MC 的软肋。</p>
+</div>
+<div class="paragraph">
+<p>离策略控制：目标策略 π 取贪婪（或逐渐变贪），行为策略 b 负责探索（如 ε-贪婪）；用 ρ 把 b 采到的 G 校正到 π 上再更新 q。表格 MC 很少真拿这套做控制——方差太大。实践里更常把离策略交给 TD（Q-learning 的 max），或把重要性采样截断/裁剪（后面 PPO 的概率比 clip）。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_直觉例子二十一点_blackjack">6.7. 直觉例子（二十一点 Blackjack）</h3>
+<div class="paragraph">
+<p>Sutton 的经典例子：状态是（玩家点数、庄家明牌、是否有可用 A），动作是要牌/停牌。一局必终止。课本常用有放回/无限牌堆，转移 P 其实写得出，只是展开很烦，所以用 MC 采样平均，不必手写 P。无放回、牌堆在变那种要把剩余牌写进状态，不是这个例子。</p>
+</div>
+<div class="paragraph">
+<p>同一局里同一手牌很少重复出现，first-visit 与 every-visit 几乎没差别。Sutton 用探索起步保证每手 (s,a) 都能采到。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_与_dp_td_的对照">6.8. 与 DP / TD 的对照</h3>
+<div class="paragraph">
+<p>| 方法 | 需要 P、R | 完整回合 | 自举 | 偏差 / 方差 |<br>
+|------|-----------|----------|------|-------------|<br>
+| DP | 要 | 否 | 是（用模型算期望） | 无采样噪声；模型必须对 |<br>
+| MC | 不要 | 是 | 否（真实 G） | first-visit 在策略无偏，方差大 |<br>
+| TD | 不要 | 否 | 是（用 V(S′)） | 目标含估计所以有偏；表格下仍收敛到 v_π，方差较小 |</p>
+</div>
+<div class="paragraph">
+<p>MC 是「采样、不自举」的一端；TD(0) 是「采样、一步自举」的另一端。n-step / λ-return 在中间插值，后面 GAE 还沿这条光谱取折中。MC 不拿 V(S′) 当目标，因此不把估计误差再喂给自己，对马尔可夫性的依赖也比 DP、TD 弱（价值仍写成状态的函数，问题本身通常还是 MDP）。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_优点与局限">6.9. 优点与局限</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>优点<br>
+无模型，能从真实交互学。<br>
+first-visit、在策略时用真实 G，无偏，没有自举带来的目标漂移。<br>
+实现直观：走完、算 G、平均。<br>
+不自举，对马尔可夫性的依赖比 DP、TD 弱。</p>
+</li>
+<li>
+<p>局限性<br>
+必须等回合结束；无终止或极长回合不适用。<br>
+方差大，样本效率差。<br>
+控制必须额外保证探索。<br>
+离策略时重要性采样方差更大。</p>
+</li>
+<li>
+<p>后向联系<br>
+REINFORCE 就是策略梯度版的蒙特卡洛（通常在策略）。<br>
+Actor-Critic / GAE 用 TD 方向减方差；MC（λ = 1）是那条光谱的一端。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考_3">6.10. 参考</h3>
+<div class="paragraph">
+<p>Sutton &amp; Barto《Reinforcement Learning: An Introduction》2nd Ed. Chapter 5</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_随机近似与随机梯度下降">7. 随机近似与随机梯度下降</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>表格 TD / Q-learning 的更新<br>
+Q(s,a) ← Q(s,a) + α [y − Q(s,a)]<br>
+是随机近似(Robbins–Monro)：用带噪样本一步步逼近期望方程的根。学习率 α 需满足 ∑ α = ∞ 且 ∑ α² &lt; ∞（例如 αₜ = 1/t），表格型才能保证收敛。<br>
+函数近似时，把 [y − Q] 当成误差，对参数做随机梯度下降，形式很像监督学习，但 y 本身往往依赖当前网络（自举），所以不是普通 SGD。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_时序差分方法temporal_difference_learning">8. 时序差分方法(Temporal Difference Learning)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_6">8.1. 概念</h3>
+<div class="paragraph">
+<p>Temporal Difference Learning，简称 TD<br>
+核心逻辑：用 Rₜ₊₁ + γ V(Sₜ₊₁)（当下收获+未来预估）作为靶向，去修正 V(Sₜ)（当前预估），这就是经典的 TD 目标。即不用等到最后尘埃落定，每走出一步，就用“这一步的实际收获 + 对下一步的预估”来修正“当前这一步的预估”。</p>
+</div>
+<div class="paragraph">
+<p>特点：<br>
+自举（Bootstrapping）：它用“估计”去更新“估计”。TD 允许拿着一个“半成品”的猜测去修改另一个“半成品”的猜测。这让学习不需要等到游戏结束，可以每走一步就更新一次。<br>
+不需要最终结局：蒙特卡洛必须等到“游戏结束”或“抵达终点”才能开始学习；而 TD 只需要等待“下一个时刻”。这意味着如果任务很长（比如下围棋下到第 200 手），TD 在第 2 手结束时就可以开始学习了，效率极高。</p>
+</div>
+<div class="paragraph">
+<p>TD 控制（学动作价值、顺便改进策略）的两个经典表格算法：SARSA（在策略 on-policy）与 Q-learning（离策略 off-policy）。二者更新形式几乎相同，差别只在 TD target 里「下一动作」怎么取。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_q_learning">8.2. Q-Learning</h3>
+<div class="sect3">
+<h4 id="_概念_7">8.2.1. 概念</h4>
+<div class="paragraph">
+<p>Q: Quality（质量）<br>
+Q(s, a) 就是：在状态 s (State) 下，采取动作 a (Action) 的质量分数。<br>
+Q-learning 是一种无模型的强化学习算法，用于在给定的马尔可夫决策过程(MDP)中找到最优的动作选择策略。它是一种离策略(off-policy)算法：行为策略负责采样，更新却按最优（max）来估价值，因此可以独立于智能体当下行为来学习最优策略。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_更新规则">8.2.2. 更新规则</h4>
+<div class="paragraph">
+<p>Q-learning 学的是最优动作价值 Q*，对应贝尔曼最优方程的采样版。</p>
+</div>
+<div class="paragraph">
+<p>TD target（若 s' 为终止状态则去掉未来项，即 y = r）:</p>
+</div>
+<div class="paragraph">
+<p>\[y = r + \gamma \max_{a'} Q(s', a')\]</p>
+</div>
+<div class="paragraph">
+<p>更新（α 为学习率）:</p>
+</div>
+<div class="paragraph">
+<p>\[Q(s, a) \leftarrow Q(s, a) + \alpha \bigl[y - Q(s, a)\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>其中 δ = y − Q(s, a) 就是 TD 误差。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">关键点——为何是 off-policy</dt>
+<dd>
+<p>行为策略（如 ε-贪婪）负责采样；更新里用的是 max_{a'}，假装下一动作一定最优。<br>
+「怎么走」和「按最优估价值」可以脱钩，因此能用旧数据、别人的轨迹，也为后面的经验回放（DQN）铺路。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_算法步骤表格型">8.2.3. 算法步骤（表格型）</h4>
+<div class="paragraph">
+<p>初始化: Q(s, a) ← 任意（终止状态对应的 Q 置 0）。</p>
+</div>
+<div class="paragraph">
+<p>每个回合:</p>
+</div>
+<div class="paragraph">
+<p>① 观察初始状态 s。<br>
+② 循环直到回合结束:<br>
+<strong>* 用行为策略（如 ε-贪婪）根据 Q 选动作 a。<br>
+</strong>* 执行 a，得到 r、s'。<br>
+<strong>* 更新: Q(s, a) ← Q(s, a) + α [r + γ max_{a'} Q(s', a') − Q(s, a)]（s' 终止则 max 项为 0）。<br>
+</strong>* s ← s'。</p>
+</div>
+<div class="paragraph">
+<p>执行时通常取贪婪策略: a = argmax_a Q(s, a)。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_直觉例子悬崖漫步_cliff_walking">8.2.4. 直觉例子（悬崖漫步 Cliff Walking）</h4>
+<div class="paragraph">
+<p>悬崖边，掉下去大惩罚。Q-learning 的 target 用 max，会按「最优路径贴着悬崖走」来估分，学得激进、回报潜力高，但训练时若仍 ε-探索，容易偶尔踩空。<br>
+SARSA 用「接下来真实会走的动作」估分，会学到离悬崖更远的保守路线——见下文 SARSA 节对比。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_优点与局限_2">8.2.5. 优点与局限</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>优点<br>
+无模型: 不需要 P、R。<br>
+离策略: 可复用多种来源的经验。<br>
+表格型收敛: 在有限 MDP、充分探索、适当衰减 α 等条件下，可收敛到 Q*。</p>
+</li>
+<li>
+<p>局限性<br>
+表格可扩展性差: 状态/动作一多，Q 表爆掉 → 引出 DQN。<br>
+max 带来过估计: 噪声下系统性抬高 Q → 引出 Double Q-learning / Double DQN。<br>
+函数近似 + 离策略 + 自举: 可能不稳定（deadly triad）。<br>
+收敛可能较慢: 大型或稀疏奖励环境里样本需求大。</p>
+</li>
+<li>
+<p>扩展与变体<br>
+深度 Q 学习(DQN): 用神经网络近似 Q，见「值函数近似」。<br>
+双 Q 学习 / Double DQN: 解耦选择与评估，减轻过估计。<br>
+SARSA: 同一 TD 家族的在策略对照算法，见下一节（不是 Q-learning 的子算法）。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_参考_4">8.2.6. 参考</h4>
+<div class="paragraph">
+<p><a href="https://en.d2l.ai/chapter_reinforcement-learning/qlearning.html" class="bare">https://en.d2l.ai/chapter_reinforcement-learning/qlearning.html</a><br>
+<a href="https://arxiv.org/pdf/1509.06461" class="bare">https://arxiv.org/pdf/1509.06461</a></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_sarsa">8.3. SARSA</h3>
+<div class="sect3">
+<h4 id="_概念_8">8.3.1. 概念</h4>
+<div class="paragraph">
+<p>SARSA = State–Action–Reward–State–Action，名字就是一次更新用到的五元组 (s, a, r, s', a')。</p>
+</div>
+<div class="paragraph">
+<p>它是无模型、在策略(on-policy)的 TD 控制算法：估的是「当前行为策略 π 之下」的动作价值 q_π，而不是最优的 Q*。<br>
+更新时下一动作 a' 必须是策略实际会选（或已选）的那个，不能换成 max。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_更新规则_2">8.3.2. 更新规则</h4>
+<div class="paragraph">
+<p>TD target（s' 终止则 y = r）:</p>
+</div>
+<div class="paragraph">
+<p>\[y = r + \gamma Q(s', a')\]</p>
+</div>
+<div class="paragraph">
+<p>更新:</p>
+</div>
+<div class="paragraph">
+<p>\[Q(s, a) \leftarrow Q(s, a) + \alpha \bigl[y - Q(s, a)\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>与 Q-learning 唯一本质差别：未来项是 Q(s', a')，不是 max_{a'} Q(s', a')。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_算法步骤表格型_2">8.3.3. 算法步骤（表格型）</h4>
+<div class="paragraph">
+<p>初始化: Q(s, a) ← 任意（终止态对应 Q 置 0）。</p>
+</div>
+<div class="paragraph">
+<p>每个回合:</p>
+</div>
+<div class="paragraph">
+<p>① 观察 s，用策略 π（如 ε-贪婪）选 a。<br>
+② 循环直到回合结束:<br>
+<strong>* 执行 a，得到 r、s'。<br>
+</strong>* 在 s' 上再用同一套 π 选 a'（终止则不必选）。<br>
+<strong>* 更新: Q(s, a) ← Q(s, a) + α [r + γ Q(s', a') − Q(s, a)]。<br>
+</strong>* s ← s'，a ← a'。</p>
+</div>
+<div class="paragraph">
+<p>注意: 必须先选出 a' 再更新——这正是「SARSA」五个字母的含义。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_与_q_learning_对比">8.3.4. 与 Q-Learning 对比</h4>
+<div class="paragraph">
+<p>| 维度 | SARSA | Q-learning |<br>
+|------|-------|------------|<br>
+| 策略关系 | On-policy：学 q_π，π 边采边改 | Off-policy：行为策略采样，学 Q* |<br>
+| TD target 未来项 | γ Q(s', a')（真实下一步） | γ max_{a'} Q(s', a')（想象最优下一步） |<br>
+| 学到的策略气质 | 更保守，把探索风险算进价值 | 更激进，朝最优逼近 |<br>
+| 数据复用 | 一般不用旧策略轨迹做主更新 | 可经验回放、异策略数据 |<br>
+| 典型后续 | Expected SARSA；on-policy Actor-Critic 相近 | DQN 及一众 off-policy value-based |</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Expected SARSA<br>
+用下一状态上策略对动作的期望代替采样的 a'：y = r + γ ∑_{a'} π(a'|s') Q(s', a')，方差更小；π 若为贪婪则退化为 Q-learning。</p>
+</li>
+<li>
+<p>何时用谁<br>
+要最优、可接受探索时掉坑、后面要接回放/DQN → Q-learning。<br>
+训练与部署同一套带探索的策略、安全/成本敏感（探索本身会受伤）→ SARSA 往往更稳。</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_值函数近似">9. 值函数近似</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_9">9.1. 概念</h3>
+<div class="paragraph">
+<p>状态太多或连续时，不能给每个 s 一张表。改用参数化函数 v̂(s, w) 或 q̂(s, a, w) 逼近价值：线性组合、tile coding、RBF，或神经网络。表格法是「每个状态一套独立参数」，函数近似让相近状态共享参数，从而泛化。</p>
+</div>
+<div class="paragraph">
+<p>线性情形：v̂(s, w) = wᵀ x(s)。用 TD 误差 δ = Rₜ₊₁ + γ v̂(Sₜ₊₁, w) − v̂(Sₜ, w) 做半梯度更新：w ← w + α δ ∇_w v̂(Sₜ, w)。叫「半」梯度是因为把 bootstrap 目标当成常数，不对 w 再求导。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_deadly_triad">9.2. deadly triad</h3>
+<div class="paragraph">
+<p>函数近似 × 自举 × 离策略 三者同时出现时，即使步长很小也可能发散。DQN 用经验回放（缓解样本相关、提高数据复用）和目标网络（让 bootstrap 目标暂时固定）来压住这条不稳定组合，并不能从理论上取消它。</p>
+</div>
+<div class="paragraph">
+<p>DQN 是值函数近似 + Q-learning 的深度版本，见下一节。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_dqn深度q网络deep_q_network">10. DQN(深度Q网络，Deep Q-Network)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_核心思想">10.1. 核心思想</h3>
+<div class="paragraph">
+<p>用一个神经网络去近似「最优动作价值函数 Q*(s, a)」（即在状态 s 下采取动作 a 后，按最优策略走下去能拿到的累计折扣回报），然后用 Q-learning 的更新规则训练网络。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_核心技巧">10.2. 核心技巧</h3>
+<div class="paragraph">
+<p>朴素地把神经网络塞进 Q-learning 会发散。DQN 用两个工程技巧压住函数近似下的不稳定；探索则沿用表格 Q-learning 已有的 ε-贪婪，不是新的稳定手段。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">经验回放 (Experience Replay)</dt>
+<dd>
+<p>把每步转移 (s, a, r, s') 存进回放池 D，训练时从中随机采样小批量。一举两得：打破相邻样本的时间相关性（近似 i.i.d.），并重复利用旧数据、提高样本效率。</p>
+</dd>
+<dt class="hdlist1">目标网络 (Target Network)</dt>
+<dd>
+<p>另外维护参数为 θ⁻ 的目标网络 Q̂ 用来计算 TD target。主网络 θ 每步更新，目标网络 θ⁻ 每 C 步同步一次（θ⁻ ← θ），使 target 在短期内保持稳定，避免「追着自己跑」的正反馈震荡。</p>
+</dd>
+<dt class="hdlist1">ε-贪婪探索 (ε-greedy)</dt>
+<dd>
+<p>以概率 ε 随机探索、以概率 1−ε 选 Q 值最大的动作；ε 随训练逐步衰减，从「多探索」过渡到「多利用」。负责探索，不负责稳定逼近。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_算法步骤">10.3. 算法步骤</h3>
+<div class="paragraph">
+<p>初始化: 主网络 Q(s,a;θ)（随机权重）、目标网络 Q̂(s,a;θ⁻) ← θ、回放池 D。</p>
+</div>
+<div class="paragraph">
+<p>每步循环:</p>
+</div>
+<div class="paragraph">
+<p>① 观察状态 s，用 ε-贪婪策略选动作 a。<br>
+② 执行 a，观察奖励 r 与下一状态 s'。<br>
+③ 将转移 (s, a, r, s') 存入回放池 D。<br>
+④ 从 D 随机采样一批转移 (s, a, r, s')。<br>
+⑤ 计算 TD target（用目标网络 Q̂；若 s' 为终止状态则不加未来项，即 y = r）:</p>
+</div>
+<div class="paragraph">
+<p>\[y = r + \gamma \cdot \max_{a'} \hat{Q}(s', a'; \theta^-)\]</p>
+</div>
+<div class="paragraph">
+<p>⑥ 最小化损失函数，对主网络做一步梯度下降:</p>
+</div>
+<div class="paragraph">
+<p>\[L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}\left[\left(y - Q(s, a; \theta)\right)^2\right]\]</p>
+</div>
+<div class="paragraph">
+<p>⑦ 每 C 步同步目标网络一次: θ⁻ ← θ。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_变种">10.4. 变种</h3>
+<div class="sect3">
+<h4 id="_double_dqn">10.4.1. Double DQN</h4>
+<div class="paragraph">
+<p>解耦「动作选择」与「Q 值评估」，缓解普通 DQN 中的过估计(Overestimation)偏差。<br>
+论文：<br>
+van Hasselt, Guez &amp; Silver, 2015（Deep Reinforcement Learning with Double Q-learning） <a href="https://arxiv.org/abs/1509.06461" class="bare">https://arxiv.org/abs/1509.06461</a></p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">动机 - 过估计从何而来</dt>
+<dd>
+<p>普通 DQN 的 TD target 为：</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>\[y_{\text{DQN}} = r + \gamma \cdot \max_{a'} \hat{Q}(s', a'; \theta^-)\]</p>
+</div>
+<div class="paragraph">
+<p>这里目标网络 θ⁻ 同时干两件事：先在内层用 max 挑出 Q 值最大的动作，再用同一组参数 θ⁻ 给这个动作打分。「选择」与「评估」耦合在同一网络里，估计误差于是自我放大。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>过估计(Overestimation)<br>
+指的是数值上的系统性正偏差。即算法计算出的动作价值（Q值）整体高于其真实能获得的累积奖励。</p>
+</li>
+<li>
+<p>例子<br>
+一个动作实际只能得 10 分，但 Q 网络估算出它能得 100 分。</p>
+</li>
+<li>
+<p>为何 max 会引入正偏差<br>
+Q 值估计本身带噪声。对带噪估计取 max，倾向于挑中「恰好被高估」的动作；高估的动作被选中后，它（被高估）的值又被原样塞回 target，下一轮继续被强化。数学上即：</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>\[\mathbb{E}\!\left[\max_{a'} \hat{Q}(s',a')\right] \;\geq\; \max_{a'} \mathbb{E}\!\left[\hat{Q}(s',a')\right]\]</p>
+</div>
+<div class="paragraph">
+<p>「估计的 max」系统性不低于「真值的 max」，这个差值就是过估计偏差的来源。<br>
+换个说法：若 Q̂ 是无偏估计，则 E[Q̂] = Q*，上式右边即真实的 max_{a'} Q*(s',a')，于是 target 的第二项被整体向上抬高了。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">解法 - 用两个网络分别负责选择与评估</dt>
+<dd>
+<p>关键想法：让「选择」与「评估」使用两套参数不同的网络，使同一处高估难以同时对齐。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>① 动作选择(Action Selection)：用在线主网络 θ 在下一状态 s' 中选出 Q 值最大的动作：</p>
+</div>
+<div class="paragraph">
+<p>\[a^* = \arg\max_{a'} Q(s', a'; \theta)\]</p>
+</div>
+<div class="paragraph">
+<p>② Q 值评估(Action Evaluation)：再用目标网络 θ⁻ 评估这个被选中的动作 a*，得到 target：</p>
+</div>
+<div class="paragraph">
+<p>\[y_{\text{DDQN}} = r + \gamma \cdot \hat{Q}(s', a^*; \theta^-)\]</p>
+</div>
+<div class="paragraph">
+<p>把两步合写，即 Double DQN 的 target（选择用 θ、评估用 θ⁻）：</p>
+</div>
+<div class="paragraph">
+<p>\[y_{\text{DDQN}} = r + \gamma \cdot \hat{Q}\!\left(s',\, \arg\max_{a'} Q(s', a'; \theta);\, \theta^-\right)\]</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>DQN vs Double DQN 公式对比</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>| | 动作选择 | Q 值评估 | target |<br>
+|---|---|---|---|<br>
+| DQN | θ⁻ | θ⁻（同一网络） | r + γ·max_{a'} Q̂(s',a';θ⁻) |<br>
+| Double DQN | θ（主网络） | θ⁻（目标网络） | r + γ·Q̂(s', argmax_{a'}Q(s',a';θ); θ⁻) |</p>
+</div>
+<div class="paragraph">
+<p>Double DQN 只动了「用谁选动作」这一处：选择改用主网络 θ，评估仍用目标网络 θ⁻。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>直觉解释<br>
+假设动作 a₁ 的真实值是 10，但因为噪声，主网络 θ 把它估成了 100；目标网络 θ⁻ 是 θ 的延迟拷贝，对 a₁ 的估计通常不同，例如只有 12。</p>
+</li>
+<li>
+<p>DQN：选择和评估都用 θ⁻，若 θ⁻ 恰好也高估了 a₁，target 就被钉在高估值附近，高估被固化。</p>
+</li>
+<li>
+<p>Double DQN：用 θ 选出 a₁，但用 θ⁻ 评估，target 落到 12 附近，高估被「拉回」一截。<br>
+θ⁻ 并非与 θ 独立（表格 Double Q-learning 才是两张独立表）；延迟同步只是降低「选动作的误差」与「打分的误差」的相关性，从而减轻系统性正偏差。</p>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">算法步骤（在 DQN 每步循环基础上替换第⑤步）</dt>
+<dd>
+<p>初始化: 主网络 Q(s,a;θ)、目标网络 Q̂(s,a;θ⁻) ← θ、回放池 D（均与 DQN 相同）。</p>
+</dd>
+</dl>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>每步循环:</p>
+</div>
+<div class="paragraph">
+<p>① 观察状态 s，用 ε-贪婪策略选动作 a。<br>
+② 执行 a，观察奖励 r 与下一状态 s'。<br>
+③ 将转移 (s, a, r, s') 存入回放池 D。<br>
+④ 从 D 随机采样一批转移 (s, a, r, s')。<br>
+⑤ 计算 TD target（与 DQN 的唯一区别在此——选择用 θ，评估用 θ⁻；若 s' 为终止状态则 y = r）:</p>
+</div>
+<div class="paragraph">
+<p>\[y = r + \gamma \cdot \hat{Q}\!\left(s',\, \arg\max_{a'} Q(s', a'; \theta);\, \theta^-\right)\]</p>
+</div>
+<div class="paragraph">
+<p>⑥ 最小化损失函数（与 DQN 完全相同），对主网络做一步梯度下降:</p>
+</div>
+<div class="paragraph">
+<p>\[L(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}\left[\left(y - Q(s, a; \theta)\right)^2\right]\]</p>
+</div>
+<div class="paragraph">
+<p>⑦ 每 C 步同步目标网络一次: θ⁻ ← θ。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>小结<br>
+Double DQN 几乎零成本：不增加网络数量、不改变结构、不动损失函数，只把 target 里「选动作」的网络从 θ⁻ 换成 θ。却能有效降低过估计、提升值函数估计的稳定性与最终策略质量。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_dueling_dqn">10.4.2. Dueling DQN</h4>
+<div class="paragraph">
+<p>把 Q 拆成状态价值 V(s) 与优势 A(s,a)，再合成 Q(s,a) = V(s) + (A(s,a) − 均值_a A)。有利于在动作很多、动作差异不大的状态里先学「这个局面好不好」。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_prioritized_replay">10.4.3. Prioritized Replay</h4>
+<div class="paragraph">
+<p>优先回放 TD 误差大的转移，让难学的样本出现更勤；需用重要性采样校正偏差。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考_5">10.5. 参考</h3>
+<div class="paragraph">
+<p><a href="https://en.d2l.ai/chapter_reinforcement-learning/qlearning.html" class="bare">https://en.d2l.ai/chapter_reinforcement-learning/qlearning.html</a><br>
+<a href="https://arxiv.org/pdf/1509.06461" class="bare">https://arxiv.org/pdf/1509.06461</a><br>
+<a href="https://pytorch.org/tutorials/intermediate/mario_rl_tutorial.html" class="bare">https://pytorch.org/tutorials/intermediate/mario_rl_tutorial.html</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_策略梯度方法">11. 策略梯度方法</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_10">11.1. 概念</h3>
+<div class="paragraph">
+<p>不经过 Q 表选动作，直接参数化策略 π_θ(a|s)，优化目标</p>
+</div>
+<div class="paragraph">
+<p>\[J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G(\tau)]\]</p>
+</div>
+<div class="paragraph">
+<p>环境（转移、奖励）对动作一般不可微，不能把 J 对 θ 直接反传。用似然比 / log-trick：</p>
+</div>
+<div class="paragraph">
+<p>\[\nabla_\theta J(\theta) = \mathbb{E}\bigl[G_t \nabla_\theta \log \pi_\theta(a_t|s_t)\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>直觉：某步动作之后回报高，就增大该动作的概率；回报低则减小。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_reinforce">11.2. REINFORCE</h3>
+<div class="paragraph">
+<p>最基本的蒙特卡洛策略梯度：走完一个回合，对每一步用该步之后的 Gₜ 更新。无偏，方差大，学习慢。减方差的常用手段是减去与动作无关的基线 b(s)，常取 b(s) ≈ V(s)：</p>
+</div>
+<div class="paragraph">
+<p>\[\nabla_\theta J \approx \mathbb{E}\bigl[(G_t - b(s_t)) \nabla_\theta \log \pi_\theta(a_t|s_t)\bigr]\]</p>
+</div>
+<div class="paragraph">
+<p>策略梯度适合连续动作（输出高斯均值/方差），也适合随机策略本身就是解的一部分的场合。样本效率通常低于 off-policy 的 Q 方法。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_actor_critic方法">12. Actor-Critic方法</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_概念_11">12.1. 概念</h3>
+<div class="paragraph">
+<p>Actor 是策略 π_θ；Critic 是价值估计（V_w 或 Q_w）。用 Critic 代替整条回报 Gₜ，既保留策略梯度可处理连续动作的优点，又用 TD 自举降低方差。</p>
+</div>
+<div class="paragraph">
+<p>优势函数：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[A(s,a) = q(s,a) - v(s)\]
+</div>
+</div>
+<div class="paragraph">
+<p>最简估计：A ≈ r + γ V(s') − V(s)，即 TD 残差 δ 当优势（下一节 GAE 的 λ = 0）。Actor 沿 ∇ log π · A 更新；Critic 用 TD 误差更新 V。实践里 PPO 等算法几乎总用 GAE，而不是单步 TD。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_gae广义优势估计generalized_advantage_estimation">12.2. GAE（广义优势估计，Generalized Advantage Estimation）</h3>
+<div class="paragraph">
+<p>Schulman et al. 2016。策略梯度要用 Âₜ，两端的估计各有病：1-step TD（δₜ）全信 critic，方差小、偏差大；Monte Carlo（Gₜ − V(sₜ)）等整条回报，偏差小、方差大。GAE 用 λ ∈ [0, 1] 在两端之间插值。</p>
+</div>
+<div class="paragraph">
+<p>TD 残差：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)\]
+</div>
+</div>
+<div class="paragraph">
+<p>（sₜ₊₁ 为终止状态则不加 γ V 项。）n-step 优势是把后面 n 个残差折现叠起来：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\hat{A}_t^{(n)} = \delta_t + \gamma \delta_{t+1} + \cdots + \gamma^{n-1}\delta_{t+n-1}\]
+</div>
+</div>
+<div class="paragraph">
+<p>等价于：用 n 步真实奖励，再在 sₜ₊ₙ 自举 V。n 小则早自举，n 大则接近 MC。GAE 对所有 n 做指数加权：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[\hat{A}_t^{\mathrm{GAE}(\gamma,\lambda)} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}\]
+</div>
+</div>
+<div class="paragraph">
+<p>实现上从轨迹末尾倒着递推，O(T)：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[A_t = \delta_t + \gamma\lambda A_{t+1}\]
+</div>
+</div>
+<div class="paragraph">
+<p>| λ | 退化成 | 偏差 | 方差 |<br>
+|---|--------|------|------|<br>
+| 0 | Âₜ = δₜ（1-step TD，上面「最简估计」） | 高 | 低 |<br>
+| 1 | Âₜ = Gₜ − V(sₜ)（Monte Carlo） | 低 | 高 |</p>
+</div>
+<div class="paragraph">
+<p>λ 只管「多信 critic、少等真实回报」，和折扣 γ 不是一回事：γ 是任务里未来值多少钱，λ 是估计器的 bias–variance 旋钮。实践常取 λ = 0.95。</p>
+</div>
+<div class="paragraph">
+<p>GAE 只改「怎么从一条轨迹估 Â」，不改优势的定义 A = q − v，也不替代 Critic 对 V 的学习。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_代表算法">12.3. 代表算法</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>A2C / A3C：同步/异步优势演员-评论家，多环境采样减相关。优势常用 1-step 或 n-step。</p>
+</li>
+<li>
+<p>PPO：近端策略优化，Proximal Policy Optimization，一种策略梯度方法。</p>
+</li>
+<li>
+<p>SAC：离策略，在奖励之外最大化策略熵，鼓励动作多样，连续控制里很常用。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>PPO 是策略梯度方法（clipped surrogate），实现上几乎总是 Actor-Critic：用 critic + GAE 估计优势。与 REINFORCE 的差别是「有没有价值网络 / 怎么约束更新」，不是「PG 与 AC 二选一」。</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ppo近端策略优化proximal_policy_optimization">13. PPO（近端策略优化，Proximal Policy Optimization）</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_核心思想_2">13.1. 核心思想</h3>
+<div class="paragraph">
+<p>OpenAI，2017。策略梯度一次更新走太远会崩：新策略的采样分布变了，旧轨迹上的梯度不再可信。TRPO 用二阶优化加 KL 硬约束限制步长；PPO 用一阶截断代理目标近似同一意图，实现简单。工业界默认的 on-policy 算法，也是经典 RLHF 里的策略优化器。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>PPO 的主要特点与优势<br>
+🛡️ 稳定性：裁剪机制防止「一步走崩」<br>
+on-policy 策略梯度对步长极敏，一次更新过大就会性能崩溃。PPO 的 clip 限制新旧策略的概率比 rₜ(θ) 落在 [1−ε, 1+ε]（ε 通常 0.2），把单步更新锁在信任域内——这是算法本身的最大优势。<br>
+大模型 RLHF 里还有另一层约束，别和 clip 混成一个「安全锚」：<br>
+| | 锚住谁 | 管什么 |<br>
+|---|---|---|<br>
+| clip | 本轮 rollout 时的 π_old | 这一步别离刚采数据时的自己太远 |<br>
+| KL 惩罚 | SFT/参考模型 π_ref | 整个 RL 过程别为刷奖励忘掉原语言能力 |<br>
+防「彻底遗忘 SFT、跑偏到无意义分布」主要靠 KL(π ‖ π_ref)，不是 clip。clip 只保证局部一步稳；多轮 iteration 后 π_old 已是改过的策略，clip 拦不住长期漂移。<br>
+⚖️ 工程性：一阶梯度实现，拒绝二阶数学<br>
+TRPO 用共轭梯度碰 KL 硬约束，实现与调试都重，且难和现代网络结构（Dropout、参数共享）很好配合。PPO 用一阶 SGD/Adam + clip 近似同一意图，代码量小得多。对大规模训练（含 LLM）这是决定性工程简化——但 ε、GAE λ、KL 系数仍要调，不是「零调试」。<br>
+🔄 数据利用：一次采样，多次更新<br>
+REINFORCE 等 vanilla PG 一批数据只用一次。PPO 用重要性采样（概率比 rₜ），在同一批 rollout 上跑 K 个 epoch——LLM 里生成回答很贵，这点特别关键。<br>
+注意：这是相对 vanilla PG 提高同批复用；绝对样本效率仍低于 off-policy（DQN/SAC），更旧策略的数据不能回放。<br>
+🎯 通用性：离散、连续都自然<br>
+PPO 同时适用于离散动作（Atari）和连续动作空间（机器人控制），对超参的鲁棒性相对好。产业界从机器人、游戏到经典 RLHF 都广用——但不是唯一选择，硬推理线已有 GRPO 等替代。<br>
+📉 现实中的限制与演变<br>
+LLM 场景下显著成本：常要再挂一个与策略同规模的 Critic 来估 V 和 GAE，显存明显上去（共享骨干只加 value head 会轻很多；还要算上 RM、ref model）。<br>
+GRPO 去掉 Critic，用组内相对比较（Aᵢ = (rᵢ − mean) / std）代替 baseline，并保留 clip 等稳定机制，显存更省；在可验证奖励的推理任务里已是主流（DeepSeek-R1）。PPO 仍是常见基线和可靠参照，但不宜写成硬推理的唯一公认选择。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_核心技巧_2">13.2. 核心技巧</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">截断代理目标 (Clipped Surrogate)</dt>
+<dd>
+<p>新旧策略对同一动作的概率比（不是奖励 r）：</p>
+</dd>
+</dl>
+</div>
+<div class="stemblock">
+<div class="content">
+\[r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\mathrm{old}}}(a_t|s_t)}\]
+</div>
+</div>
+<div class="paragraph">
+<p>代理目标截断在 [1−ε, 1+ε]（ε 通常 0.2）：</p>
+</div>
+<div class="stemblock">
+<div class="content">
+\[L^{\mathrm{CLIP}}(\theta) = \mathbb{E}\Big[\min\big(r_t(\theta)\hat{A}_t,\; \mathrm{clip}(r_t(\theta), 1-\varepsilon, 1+\varepsilon)\hat{A}_t\big)\Big]\]
+</div>
+</div>
+<div class="paragraph">
+<p>直觉：Âₜ &gt; 0（这步比平均好）时，不让概率比涨过 1+ε；Âₜ &lt; 0 时，不让概率比跌破 1−ε。一次更新偏离旧策略有上限，避免「走太远把策略走废」。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">GAE</dt>
+<dd>
+<p>用上一节的 Â^{GAE(γ,λ)} 作为优势，而不是单步 TD。PPO 论文与主流实现（Spinning Up、Stable-Baselines3）的默认选择。</p>
+</dd>
+<dt class="hdlist1">在策略复用</dt>
+<dd>
+<p>用 π_{θ_old} 采一段数据，在这段数据上做 K 个 epoch 的小批量更新（比 vanilla PG 每条样本只用一次更省），然后整段丢掉。不能像 DQN 那样回放更旧策略采到的轨迹——on-policy。</p>
+</dd>
+<dt class="hdlist1">价值损失与熵</dt>
+<dd>
+<p>Critic 拟合 V^{targ}_t = Âₜ + V(sₜ)（或折扣回报）。常加熵奖励鼓励探索。总损失大致是 −L^{CLIP} + c_v L^V − c_H H[π]。</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_算法步骤_2">13.3. 算法步骤</h3>
+<div class="paragraph">
+<p>初始化: Actor π_θ、Critic V_w。</p>
+</div>
+<div class="paragraph">
+<p>每个 iteration:</p>
+</div>
+<div class="paragraph">
+<p>① 用当前策略采样 T 步（或若干条轨迹），冻结为 π_{θ_old}（记下每步的 log π_{old}(a|s)）。<br>
+② 对每步算 TD 残差 δₜ = rₜ + γ V(sₜ₊₁) − V(sₜ)；终止状态不加未来项。<br>
+③ 倒着递推 GAE：Aₜ = δₜ + γλ Aₜ₊₁；价值目标 V^{targ}_t = Aₜ + V(sₜ)。<br>
+④ 对这批数据做 K 个 epoch 的小批量更新：<br>
+   - 概率比 rₜ(θ) = π_θ(aₜ|sₜ) / π_{old}(aₜ|sₜ)<br>
+   - 最大化 L^{CLIP}（更新 Actor）<br>
+   - 最小化 (V_w(sₜ) − V^{targ}_t)²（更新 Critic）<br>
+   - 可选：加熵奖励<br>
+⑤ 丢弃本轮数据，进入下一 iteration。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_与相邻算法">13.4. 与相邻算法</h3>
+<div class="paragraph">
+<p>| | 如何限制更新 | 优势估计 | 数据 |<br>
+|---|---|---|---|<br>
+| A2C | 无（普通策略梯度） | 常 1-step / n-step | on-policy |<br>
+| TRPO | KL 硬约束 + 二阶 | GAE | on-policy |<br>
+| PPO | clip（论文还有 KL 惩罚版，工业界用 clip） | GAE | on-policy |<br>
+| SAC | 软更新 + 熵正则 | 双 Q | off-policy |</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>小结<br>
+PPO 没发明新的目标函数家族，只是把「别一次走太远」做成可一阶优化的 clip，再用 GAE 把优势估稳。实现比 TRPO 简单，比 A2C 稳，是连续控制与 RLHF 的默认起点。</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_参考_6">13.5. 参考</h3>
+<div class="paragraph">
+<p><a href="https://arxiv.org/abs/1707.06347" class="bare">https://arxiv.org/abs/1707.06347</a><br>
+<a href="https://arxiv.org/abs/1506.02438" class="bare">https://arxiv.org/abs/1506.02438</a><br>
+<a href="https://spinningup.openai.com/en/latest/algorithms/ppo.html" class="bare">https://spinningup.openai.com/en/latest/algorithms/ppo.html</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_project">14. project</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>env<br>
+<a href="https://cloud.tencent.com/developer/article/1788317" class="bare">https://cloud.tencent.com/developer/article/1788317</a></p>
+</li>
+<li>
+<p>mario<br>
+<a href="https://github.com/vietnh1009/Super-mario-bros-PPO-pytorch" class="bare">https://github.com/vietnh1009/Super-mario-bros-PPO-pytorch</a><br>
+<a href="https://pytorch.org/tutorials/intermediate/mario_rl_tutorial.html" class="bare">https://pytorch.org/tutorials/intermediate/mario_rl_tutorial.html</a></p>
+</li>
+<li>
+<p>dota2<br>
+<a href="https://github.com/bilibili/LastOrder-Dota2" class="bare">https://github.com/bilibili/LastOrder-Dota2</a></p>
+</li>
+<li>
+<p>斗地主<br>
+<a href="https://github.com/kwai/DouZero" class="bare">https://github.com/kwai/DouZero</a><br>
+<a href="https://github.com/Netease-Games-AI-Lab-Guangzhou/PerfectDou" class="bare">https://github.com/Netease-Games-AI-Lab-Guangzhou/PerfectDou</a></p>
+</li>
+<li>
+<p>Pong from Pixels<br>
+<a href="https://karpathy.github.io/2016/05/31/rl/" class="bare">https://karpathy.github.io/2016/05/31/rl/</a></p>
+</li>
+<li>
+<p>gymnasium<br>
+<a href="https://gymnasium.farama.org/introduction/basic_usage/#your-first-rl-program" class="bare">https://gymnasium.farama.org/introduction/basic_usage/#your-first-rl-program</a><br>
+<a href="https://gymnasium.farama.org/introduction/train_agent/" class="bare">https://gymnasium.farama.org/introduction/train_agent/</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_参考_7">15. 参考</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>李宏毅<br>
+<a href="https://datawhalechina.github.io/easy-rl/" class="bare">https://datawhalechina.github.io/easy-rl/</a></p>
+</li>
+<li>
+<p>赵世钰<br>
+《强化学习的数学原理》<br>
+<a href="https://www.icourse163.org/course/XHUN-1470436188?tid=1475125444" class="bare">https://www.icourse163.org/course/XHUN-1470436188?tid=1475125444</a><br>
+<a href="https://www.bilibili.com/video/BV1sd4y167NS" class="bare">https://www.bilibili.com/video/BV1sd4y167NS</a><br>
+<a href="https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning" class="bare">https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning</a></p>
+</li>
+<li>
+<p>王树森<br>
+<a href="https://www.bilibili.com/video/BV1hhbSzjEi1/" class="bare">https://www.bilibili.com/video/BV1hhbSzjEi1/</a><br>
+《深度强化学习》<br>
+<a href="https://github.com/wangshusen/DRL" class="bare">https://github.com/wangshusen/DRL</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>-《动手强化学习》<br>
+<a href="https://hrl.boyuai.com/chapter/intro" class="bare">https://hrl.boyuai.com/chapter/intro</a></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>《Reinforcement Learning: An Introduction》2nd Edition</p>
+</li>
+<li>
+<p>《Deep Reinforcement Learning Hands-On》</p>
+</li>
+<li>
+<p>UC Berkeley CS285<br>
+<a href="https://rail.eecs.berkeley.edu/deeprlcourse/" class="bare">https://rail.eecs.berkeley.edu/deeprlcourse/</a></p>
+</li>
+<li>
+<p>斯坦福大学《CS234: 强化学习》<br>
+<a href="https://web.stanford.edu/class/cs234/" class="bare">https://web.stanford.edu/class/cs234/</a></p>
+</li>
+<li>
+<p>UCLA<br>
+Reinforcement Learning of Large Language Models</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Version 0.0.1<br>
+Last updated 2026-09-16 07:40:24 +0800
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
+<script>
+if (!hljs.initHighlighting.called) {
+  hljs.initHighlighting.called = true
+  ;[].slice.call(document.querySelectorAll('pre.highlight > code[data-lang]')).forEach(function (el) { hljs.highlightBlock(el) })
+}
+</script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(","\\)"]],
+    displayMath: [["\\[","\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$","\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+</body>
+</html>
