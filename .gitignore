@@ -23,3 +23,5 @@
 *.code-workspace
 
 *.txt
+
+temp/
